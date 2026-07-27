@@ -5,7 +5,7 @@ import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-/**
+/*
  * PRODUCER–CONSUMER — decouple work creation from work processing via a bounded buffer.
  * The buffer applies back-pressure: producers block when full, consumers block when empty.
  *

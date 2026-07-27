@@ -3,7 +3,7 @@ package com.lld.behavioral.memento;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-/**
+/*
  * MEMENTO — capture and externalise an object's internal state so it can be restored later,
  * WITHOUT violating encapsulation.
  *

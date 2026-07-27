@@ -1,6 +1,6 @@
 package com.lld.structural.adapter;
 
-/**
+/*
  * ADAPTER — convert one interface into another that a client expects. Lets classes with
  * incompatible interfaces collaborate. Think of a power plug adapter.
  *

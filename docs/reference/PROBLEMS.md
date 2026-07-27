@@ -101,6 +101,8 @@ not just floor numbers. Keep separate up/down request sets per car.
 
 ## Notification Service
 
+> **Full implementation:** [`src/com/lld/problems/notification/`](../../src/com/lld/problems/notification/NotificationDemo.java)
+
 **Requirements.** Send notifications over email/SMS/push/WhatsApp; different notification types
 (OTP, order update, marketing); user preferences; retries; templating.
 
@@ -173,6 +175,8 @@ explain why you'd pick one, or use both.
 
 ## Logging Framework
 
+> **Full implementation:** [`src/com/lld/problems/logger/`](../../src/com/lld/problems/logger/LoggerDemo.java)
+
 **Requirements.** Levels (DEBUG/INFO/WARN/ERROR); multiple destinations (console/file/network);
 formatting; async writes; per-module configuration.
 
@@ -196,6 +200,8 @@ production is a real incident class.
 ---
 
 ## Rate Limiter
+
+> **Full implementation:** [`src/com/lld/problems/ratelimiter/`](../../src/com/lld/problems/ratelimiter/RateLimiterDemo.java)
 
 **Requirements.** Limit requests per user/API key; algorithms (token bucket, leaky bucket, fixed
 window, sliding window log/counter); distributed operation.
@@ -244,6 +250,8 @@ proportional to nearby drivers only. Patterns won't save you here; the data stru
 ---
 
 ## Cache with LRU or LFU eviction
+
+> **Full implementation:** [`src/com/lld/problems/cache/`](../../src/com/lld/problems/cache/CacheDemo.java)
 
 **Requirements.** `get`/`put` in O(1); fixed capacity; pluggable eviction; TTL; thread safety.
 
@@ -410,6 +418,8 @@ a *copy*, you reserve a *book*. Getting this modelling right matters more than a
 ---
 
 ## Hotel and Movie Booking
+
+> **Full implementation:** [`src/com/lld/problems/booking/`](../../src/com/lld/problems/booking/BookingDemo.java)
 
 **Requirements.** Search availability; hold a seat/room; book; pay; cancel and refund; prevent
 double-booking.

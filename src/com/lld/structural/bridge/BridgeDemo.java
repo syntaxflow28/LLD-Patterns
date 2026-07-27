@@ -1,6 +1,6 @@
 package com.lld.structural.bridge;
 
-/**
+/*
  * BRIDGE — decouple an abstraction from its implementation so the two can vary independently.
  *
  * The signal you need it: a class hierarchy is exploding along TWO dimensions.

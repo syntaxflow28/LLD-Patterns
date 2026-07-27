@@ -85,7 +85,7 @@ design decisions → real JDK usage → when NOT to use it → interview soundbi
 ## Worked end-to-end problems
 
 Single-pattern demos teach the pattern; they don't teach the hard part, which is **choosing between
-patterns under time pressure and making them cooperate**. These four are complete, runnable
+patterns under time pressure and making them cooperate**. These nine are complete, runnable
 implementations of the questions that actually get asked — multi-file packages, real validation,
 real edge cases, and comments explaining *why* each decision beat the alternative.
 
@@ -95,6 +95,11 @@ real edge cases, and comments explaining *why* each decision beat the alternativ
 | [Vending Machine](src/com/lld/problems/vendingmachine/VendingMachineDemo.java) | State, Facade, Flyweight-ish shared states | State vs Strategy, illegal transitions, **can the hopper actually make change?** |
 | [Splitwise](src/com/lld/problems/splitwise/SplitwiseDemo.java) | Strategy, Observer, Facade | Rounding so shares sum *exactly*, materialised ledger, greedy min-cash-flow |
 | [Elevator System](src/com/lld/problems/elevator/ElevatorDemo.java) | Strategy, Mediator, Facade, sealed hierarchy | SCAN vs FIFO, hall calls ≠ car calls, dispatch cost functions |
+| [LRU / LFU Cache](src/com/lld/problems/cache/CacheDemo.java) | Strategy, Facade | O(1) get *and* put (HashMap + doubly linked list), "now make it LFU", TTL, why `ConcurrentHashMap` alone isn't enough |
+| [Rate Limiter](src/com/lld/problems/ratelimiter/RateLimiterDemo.java) | Strategy | Four algorithms compared, and the **fixed-window boundary burst reproduced live** (10 requests through a 5/sec limit) |
+| [Logging Framework](src/com/lld/problems/logger/LoggerDemo.java) | Chain of Responsibility, Template Method, Strategy ×2, Singleton, Factory | Broadcast vs stop-at-first CoR, format ⟂ destination, lazy message construction |
+| [Notification Service](src/com/lld/problems/notification/NotificationDemo.java) | **Bridge**, Template Method, Observer, Strategy | M types × N channels → M + N, exponential backoff, why an OTP ignores opt-out |
+| [Movie Ticket Booking](src/com/lld/problems/booking/BookingDemo.java) | Strategy, Decorator, Facade, State (via status) | **Seat holds with a TTL** — 20 threads race one seat, all-or-nothing locking, late payment rejected |
 
 Run them the same way as any other demo:
 
@@ -103,16 +108,21 @@ java -cp out com.lld.problems.parkinglot.ParkingLotDemo
 java -cp out com.lld.problems.vendingmachine.VendingMachineDemo
 java -cp out com.lld.problems.splitwise.SplitwiseDemo
 java -cp out com.lld.problems.elevator.ElevatorDemo
+java -cp out com.lld.problems.cache.CacheDemo
+java -cp out com.lld.problems.ratelimiter.RateLimiterDemo
+java -cp out com.lld.problems.logger.LoggerDemo
+java -cp out com.lld.problems.notification.NotificationDemo
+java -cp out com.lld.problems.booking.BookingDemo
 ```
 
 Each demo prints a narrated trace, including the failure cases — rejected inputs, races, sold-out
-machines, and the change-making dead end. Read [PROBLEMS.md](docs/reference/PROBLEMS.md) first for the
-reasoning, then the code for the execution.
+machines, expired seat holds, and the change-making dead end. Read [PROBLEMS.md](docs/reference/PROBLEMS.md)
+first for the reasoning, then the code for the execution.
 
 ## Running the code
 
 No build tool needed — plain Java (17+ required for records and sealed interfaces).
-Verified on **JDK 25**: all 33 demos compile and run clean.
+Verified on **JDK 25**: all 38 demos compile and run clean, with zero `-Xlint:all` warnings.
 
 ```powershell
 # from the repo root

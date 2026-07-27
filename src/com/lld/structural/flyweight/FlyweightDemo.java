@@ -3,7 +3,7 @@ package com.lld.structural.flyweight;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
+/*
  * FLYWEIGHT — share common (intrinsic) state between many objects to cut memory usage. State that
  * differs per object (extrinsic) is passed in at call time instead of being stored.
  *
