@@ -30,7 +30,7 @@ Deep dives. Every entry follows the same structure:
 | [CREATIONAL.md](patterns/CREATIONAL.md) | Singleton, Factory Method, Abstract Factory, Builder, Prototype, Object Pool |
 | [STRUCTURAL.md](patterns/STRUCTURAL.md) | Adapter, Decorator, Facade, Composite, Proxy, Bridge, Flyweight |
 | [BEHAVIORAL.md](patterns/BEHAVIORAL.md) | Strategy, Observer, State, Command, Chain of Responsibility, Template Method, Iterator, Mediator, Memento, Visitor, Interpreter |
-| [PRACTICAL.md](patterns/PRACTICAL.md) | Repository, Dependency Injection, Null Object, Specification, Producer–Consumer, plus Unit of Work, DTO, CQRS, Event Sourcing, Saga |
+| [PRACTICAL.md](patterns/PRACTICAL.md) | Repository, Dependency Injection, Null Object, Specification, Producer–Consumer, Unit of Work, Circuit Breaker, Idempotency Key, Domain Events, Result/Either, Registry/Plugin, plus DTO, CQRS, Event Sourcing, Saga |
 
 ---
 

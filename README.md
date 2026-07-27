@@ -30,7 +30,7 @@ All docs live under [`docs/`](docs), grouped by how you use them:
 | [CREATIONAL.md](docs/patterns/CREATIONAL.md) | Deep dive: Singleton, Factory, Abstract Factory, Builder, Prototype, Object Pool |
 | [STRUCTURAL.md](docs/patterns/STRUCTURAL.md) | Deep dive: Adapter, Decorator, Facade, Composite, Proxy, Bridge, Flyweight |
 | [BEHAVIORAL.md](docs/patterns/BEHAVIORAL.md) | Deep dive: Strategy, Observer, State, Command, CoR, Template, Iterator, Mediator, Memento, Visitor, Interpreter |
-| [PRACTICAL.md](docs/patterns/PRACTICAL.md) | Deep dive: Repository, DI, Null Object, Specification, Producer–Consumer + Unit of Work, DTO, CQRS, Saga |
+| [PRACTICAL.md](docs/patterns/PRACTICAL.md) | Deep dive: Repository, DI, Null Object, Specification, Producer–Consumer, Unit of Work, Circuit Breaker, Idempotency, Domain Events, Result, Registry + DTO, CQRS, Saga |
 
 Each deep-dive entry follows the same structure: **intent → the problem it solves → structure →
 design decisions → real JDK usage → when NOT to use it → interview soundbite → follow-up questions**.
@@ -81,6 +81,12 @@ design decisions → real JDK usage → when NOT to use it → interview soundbi
 | [Specification](src/com/lld/practical/specification/SpecificationDemo.java) | Composable business rules | Search filters, eligibility rules |
 | [Object Pool](src/com/lld/practical/objectpool/ObjectPoolDemo.java) | Reuse expensive objects | Connection/thread pools |
 | [Producer–Consumer](src/com/lld/practical/producerconsumer/ProducerConsumerDemo.java) | Decouple work creation from processing | Task queues, async logging |
+| [Unit of Work](src/com/lld/practical/unitofwork/UnitOfWorkDemo.java) | Flush a whole transaction atomically | "How do two repository saves stay consistent?" |
+| [Circuit Breaker](src/com/lld/practical/circuitbreaker/CircuitBreakerDemo.java) | Stop calling a dying dependency | Payment gateway outage, cascading failure |
+| [Idempotency Key](src/com/lld/practical/idempotency/IdempotencyDemo.java) | Make retries safe | "The client retried — did they pay twice?" |
+| [Domain Events](src/com/lld/practical/domainevents/DomainEventsDemo.java) | Announce facts, don't call collaborators | Order placed → email + stock + analytics |
+| [Result / Either](src/com/lld/practical/result/ResultDemo.java) | Failure as a value, not a throw | Validation pipelines, expected errors |
+| [Registry / Plugin](src/com/lld/practical/registry/PluginRegistryDemo.java) | Delete the switch everyone edits | Export formats, payment providers |
 
 ## Worked end-to-end problems
 
@@ -122,7 +128,7 @@ first for the reasoning, then the code for the execution.
 ## Running the code
 
 No build tool needed — plain Java (17+ required for records and sealed interfaces).
-Verified on **JDK 25**: all 38 demos compile and run clean, with zero `-Xlint:all` warnings.
+Verified on **JDK 25**: all 44 demos compile and run clean, with zero `-Xlint:all` warnings.
 
 ```powershell
 # from the repo root

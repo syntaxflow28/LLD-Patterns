@@ -58,6 +58,11 @@ SDE-2 / senior LLD rounds.
 | Long compound `if` conditions encoding business rules | **Specification** |
 | Decouple work creation from work processing | **Producer–Consumer** |
 | Group multiple repository writes into one transaction | **Unit of Work** |
+| A slow dependency is exhausting your thread pool | **Circuit Breaker** |
+| "The client retried — did they pay twice?" | **Idempotency Key** |
+| One operation grew five unrelated side effects | **Domain Events** |
+| Expected failures returned as `null` or thrown | **Result / Either** |
+| A `switch` on a string that every new feature edits | **Registry / Plugin** |
 | Read model and write model have different needs | **CQRS** *(leans HLD)* |
 | Need an audit trail / rebuildable state | **Event Sourcing** *(leans HLD)* |
 | Expose an entity to callers as a plain data carrier | **DTO** (Java `record`) |
@@ -99,6 +104,19 @@ SDE-2 / senior LLD rounds.
   Decorators always delegate onward and each adds behavior.
 - **Visitor vs Strategy:** Visitor dispatches on the *element type* (double dispatch);
   Strategy is one algorithm applied uniformly.
+
+**Practical**
+- **Registry vs Factory:** a Factory *decides* which object to create, so it changes when the product
+  set changes; a Registry *looks up* something handed to it and never knows the concrete types.
+- **Registry vs Service Locator:** same `Map`, opposite verdicts. Looking up an implementation chosen
+  by **runtime data** is fine; a class fetching its own **fixed dependencies** from a global registry
+  has hidden them from the constructor — inject those instead.
+- **Domain Events vs Observer:** Observer couples a subject to its own listeners; Domain Events are
+  typed facts on a shared bus, so publisher and subscriber never reference each other.
+- **Result vs Optional:** `Optional` models *absence*; `Result` models *failure with a reason* — and
+  the reason is what the caller needs to build a 400 response.
+- **Circuit Breaker vs Retry:** Retry handles the *transient* blip; the breaker handles the
+  *sustained* outage. Use both, retry inside the breaker.
 
 ---
 
