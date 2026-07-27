@@ -275,6 +275,74 @@ direct node reference so you never scan the list. Then: *"make it thread-safe"* 
 
 ---
 
+## Gaming Leaderboard
+
+> **Full implementation:** [`src/com/lld/problems/leaderboard/`](../../src/com/lld/problems/leaderboard/LeaderboardDemo.java)
+
+**Requirements.** Millions of players; scores update in real time; return the top K; return *a given
+player's* rank; daily, weekly and all-time boards.
+
+**Where the design pressure is.**
+1. **Three operations, no single structure that does all three.** Submit, top-K and rank-of-player
+   each have an obvious data structure, and they are three *different* data structures.
+2. **"What rank am I?" is the hot query** and it is the one that quietly stays O(n).
+3. **Ties are guaranteed**, not an edge case — and ties are where the implementation silently breaks.
+4. **"Submit a score" is underspecified.** Add to a total, keep the best, or overwrite?
+5. **Time windows** must not be implemented as a filter over history.
+6. **Concurrency** — score submission is a read-modify-write across several structures.
+
+| Pattern | Applied to | Why this one |
+|---|---|---|
+| **Strategy** | `RankIndex` | *The* axis of this problem. You write the O(n) version first and the interviewer asks you to scale it; behind an interface that's a new class, and you can run both and compare. |
+| **Strategy** (2nd) | `ScoringRule` | Accumulate / personal-best / latest are three different products from the same code. An interface (not an enum) keeps it open for "now add weekly decay". |
+| **Strategy as enum** | `TimeWindow` | Daily/weekly/all-time is a genuinely closed set, so an enum is simpler — and `values()` gives you the write fan-out loop for free. |
+| **Observer** | `LeaderboardListener` | "Push a notification when someone breaks into the top 10" without the board importing a push SDK, and without a notification outage failing score submission. |
+| **Facade** | `LeaderboardService` | One gameplay result must reach three boards. Without the facade, every caller duplicates the fan-out and the bucket-key rules. |
+| **DTO** | `RankedPlayer` | Keeps the internal tie-break `sequence` out of the wire contract, so the tie-break rule can change without breaking clients. |
+
+**The structure, and why the obvious ones fail.**
+
+| Structure | submit | top K | rank of player |
+|---|---|---|---|
+| `HashMap` only | O(1) | O(n log n) — sort everything | O(n) |
+| Sorted `ArrayList` | O(n) — shift on insert | O(k) | O(log n) |
+| Max-heap | O(log n) | O(k log n), destructive | O(n) |
+| `HashMap` + `TreeSet` | O(log n) | O(k) | **O(n) — still!** |
+| …+ Fenwick rank index | O(log n) | O(k) | O(log range) |
+
+The fourth row is where most candidates stop. A `TreeSet` looks like it solves everything until you
+ask it for a rank *number* — `ranked.headSet(me).size()` is O(n), because `size()` on a `SortedSet`
+view counts every time. So the design carries a third structure whose only job is counting: a
+**Fenwick tree (BIT) indexed by score**, where "players above me" is `total - prefixSum(score)` in
+O(log range). Volunteer its cost too: memory scales with the score *range*, not the player count, so
+bucket or coordinate-compress if scores are huge or fractional.
+
+**The one thing interviewers probe.** *"Two players have the same score — what happens?"* This is a
+trap with a specific, demonstrable failure. The natural comparator is "by score, descending", and
+`TreeSet` treats *compare returns 0* as *this element is already present* — so the second player on
+940 is **never added**. Nothing throws, `add()` just returns `false`, and your board shows 4 of 6
+players. The fix is a **total order consistent with equals**: score → tie-break (earliest to reach it
+wins) → player id as the final uniqueness guarantee. The runnable demo reproduces the loss and the
+fix side by side.
+
+Two follow-ups arrive almost every time:
+- *"What rank do the tied players get?"* — **Competition rank** (1, 2, 2, **4**) is what a scoreboard
+  shows; **dense rank** (1, 2, 2, **3**) is what game UIs usually want. Ask which; picking silently is
+  a coin flip you don't need to take.
+- *"How would you update a player's score?"* — **Remove, build a new entry, re-insert.** Mutating an
+  entry that is sitting in a `TreeSet` leaves it filed under its old score: `contains()` returns false
+  for an element physically in the set, `remove()` silently fails, and it sorts in the wrong place
+  forever. Making the entry an immutable `record` is what forces callers down the safe path.
+
+**Scaling notes worth 30 seconds at the end.** In production this class is a **Redis sorted set** —
+`ZADD` O(log n), `ZREVRANGE` O(log n + k), `ZREVRANK` O(log n) — a skip list giving you the `TreeSet`
+and the rank index in one primitive. Shard by game mode and window (natural partitions) rather than
+splitting one board, because rank is global. And only the top ~1000 needs to be exact: below that, an
+approximate rank from a periodically rebuilt histogram is indistinguishable to the player and removes
+the write-path contention entirely.
+
+---
+
 ## Text Editor
 
 **Requirements.** Insert/delete/format text; unlimited undo/redo; a document structure of

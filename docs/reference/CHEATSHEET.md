@@ -168,6 +168,7 @@ SDE-2 / senior LLD rounds.
 | [Rate limiter](PROBLEMS.md#rate-limiter) | Strategy (algorithm), Proxy, Singleton | The algorithm *is* the requirement; must wrap services transparently |
 | [Food delivery / ride hailing](PROBLEMS.md#food-delivery-and-ride-hailing) | Mediator, Strategy (matching/pricing), State, Observer | Riders and drivers must never reference each other |
 | [Cache (LRU/LFU)](PROBLEMS.md#cache-with-lru-or-lfu-eviction) | Strategy (eviction), Proxy, Singleton | Eviction is the stated variation; O(1) is the hidden test |
+| [Gaming leaderboard](PROBLEMS.md#gaming-leaderboard) | Strategy (rank index, scoring), Observer, Facade, DTO | Three ops need three structures; "what rank am I?" stays O(n) unless you notice |
 | [Text editor / IDE](PROBLEMS.md#text-editor) | Command + Memento (undo), Composite (doc tree), Flyweight (glyphs), Iterator | Undo needs operations as objects; a million glyphs need sharing |
 | [Snake & Ladder / board games](PROBLEMS.md#snake-and-ladder) | Factory, Strategy (dice), Observer, State | Tests **restraint** — the trap is over-engineering |
 | [ATM machine](PROBLEMS.md#atm-machine) | State, Chain of Responsibility (note dispensing), Strategy, Template Method | Strict operation ordering; denominations cascade naturally |

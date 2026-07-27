@@ -91,7 +91,7 @@ design decisions → real JDK usage → when NOT to use it → interview soundbi
 ## Worked end-to-end problems
 
 Single-pattern demos teach the pattern; they don't teach the hard part, which is **choosing between
-patterns under time pressure and making them cooperate**. These nine are complete, runnable
+patterns under time pressure and making them cooperate**. These ten are complete, runnable
 implementations of the questions that actually get asked — multi-file packages, real validation,
 real edge cases, and comments explaining *why* each decision beat the alternative.
 
@@ -106,6 +106,7 @@ real edge cases, and comments explaining *why* each decision beat the alternativ
 | [Logging Framework](src/com/lld/problems/logger/LoggerDemo.java) | Chain of Responsibility, Template Method, Strategy ×2, Singleton, Factory | Broadcast vs stop-at-first CoR, format ⟂ destination, lazy message construction |
 | [Notification Service](src/com/lld/problems/notification/NotificationDemo.java) | **Bridge**, Template Method, Observer, Strategy | M types × N channels → M + N, exponential backoff, why an OTP ignores opt-out |
 | [Movie Ticket Booking](src/com/lld/problems/booking/BookingDemo.java) | Strategy, Decorator, Facade, State (via status) | **Seat holds with a TTL** — 20 threads race one seat, all-or-nothing locking, late payment rejected |
+| [Gaming Leaderboard](src/com/lld/problems/leaderboard/LeaderboardDemo.java) | Strategy ×3, Observer, Facade, DTO | Three ops, three structures; a **Fenwick tree** for O(log) rank, and the tie-break comparator that silently loses players |
 
 Run them the same way as any other demo:
 
@@ -119,6 +120,7 @@ java -cp out com.lld.problems.ratelimiter.RateLimiterDemo
 java -cp out com.lld.problems.logger.LoggerDemo
 java -cp out com.lld.problems.notification.NotificationDemo
 java -cp out com.lld.problems.booking.BookingDemo
+java -cp out com.lld.problems.leaderboard.LeaderboardDemo
 ```
 
 Each demo prints a narrated trace, including the failure cases — rejected inputs, races, sold-out
@@ -128,7 +130,7 @@ first for the reasoning, then the code for the execution.
 ## Running the code
 
 No build tool needed — plain Java (17+ required for records and sealed interfaces).
-Verified on **JDK 25**: all 44 demos compile and run clean, with zero `-Xlint:all` warnings.
+Verified on **JDK 25**: all 45 demos compile and run clean, with zero `-Xlint:all` warnings.
 
 ```powershell
 # from the repo root
