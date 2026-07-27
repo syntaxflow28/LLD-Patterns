@@ -156,6 +156,12 @@ SDE-2 / senior LLD rounds.
 > problem — the variation points that drive the design, the alternative you'd reject, and the one
 > question interviewers always probe. Click any problem below to jump to its breakdown.
 
+> **Short on time?** [Tic-Tac-Toe](PROBLEMS.md#tic-tac-toe-and-chess),
+> [meeting room scheduler](PROBLEMS.md#meeting-room-scheduler) and
+> [undo/redo](PROBLEMS.md#undo-and-redo-system) are the three that genuinely fit in 45 minutes, and
+> each carries an explicit minute-by-minute budget plus a list of what to cut. The rest are 60–90
+> minute designs — expect an interviewer to hand you a slice of one, not all of it.
+
 | Problem | Patterns you'll likely use | The core reason |
 |---|---|---|
 | [Parking Lot](PROBLEMS.md#parking-lot) | Strategy (fees), Factory (spots), Singleton (lot), State (ticket) | Pricing and spot types are the named axes of change |
@@ -177,6 +183,7 @@ SDE-2 / senior LLD rounds.
 | [Message broker / task queue](PROBLEMS.md#message-broker-and-task-queue) | Producer–Consumer, Observer, Command, Object Pool | Bounded queue = back-pressure instead of OOM |
 | [Library management](PROBLEMS.md#library-management) | Repository, State (book status), Observer (waitlist), Specification (search) | Modelling Book vs BookCopy matters more than any pattern |
 | [Hotel / movie booking](PROBLEMS.md#hotel-and-movie-booking) | State (booking), Strategy (pricing), Facade, Repository, Observer | Double-booking is the real question; holds need a TTL |
+| [Meeting room scheduler](PROBLEMS.md#meeting-room-scheduler) | Facade, value objects (intervals), Strategy (allocation) | Half-open intervals, and conflict detection that isn't a scan |
 | [Traffic light controller](PROBLEMS.md#traffic-light-controller) | State, Observer, Singleton | The canonical minimal state machine + a safety invariant |
 | [Document converter / exporter](PROBLEMS.md#document-converter) | Visitor, Composite, Bridge, Strategy, Template Method | Stable node types, growing export targets |
 | [Undo/redo system](PROBLEMS.md#undo-and-redo-system) | Command, Memento, Composite (macros) | The point *is* the Command-vs-Memento trade-off |

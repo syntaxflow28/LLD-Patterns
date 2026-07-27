@@ -24,8 +24,8 @@ All docs live under [`docs/`](docs), grouped by how you use them:
 | [APPROACH.md](docs/foundations/APPROACH.md) | The 6-step interview framework, question bank, concurrency playbook, worked Parking Lot example |
 | [SOLID.md](docs/foundations/SOLID.md) | Each principle with nuance, detection heuristics, and what to say out loud |
 | **`reference/`** | |
-| [CHEATSHEET.md](docs/reference/CHEATSHEET.md) | Fast symptom → pattern lookup, confusing pairs, 25 classic problems |
-| [PROBLEMS.md](docs/reference/PROBLEMS.md) | **Why** each pattern fits each of the 25 classic problems — variation points, rejected alternatives, and the question interviewers always ask |
+| [CHEATSHEET.md](docs/reference/CHEATSHEET.md) | Fast symptom → pattern lookup, confusing pairs, 26 classic problems |
+| [PROBLEMS.md](docs/reference/PROBLEMS.md) | **Why** each pattern fits each of the 26 classic problems — variation points, rejected alternatives, and the question interviewers always ask |
 | **`patterns/`** | |
 | [CREATIONAL.md](docs/patterns/CREATIONAL.md) | Deep dive: Singleton, Factory, Abstract Factory, Builder, Prototype, Object Pool |
 | [STRUCTURAL.md](docs/patterns/STRUCTURAL.md) | Deep dive: Adapter, Decorator, Facade, Composite, Proxy, Bridge, Flyweight |
@@ -91,9 +91,14 @@ design decisions → real JDK usage → when NOT to use it → interview soundbi
 ## Worked end-to-end problems
 
 Single-pattern demos teach the pattern; they don't teach the hard part, which is **choosing between
-patterns under time pressure and making them cooperate**. These ten are complete, runnable
+patterns under time pressure and making them cooperate**. These thirteen are complete, runnable
 implementations of the questions that actually get asked — multi-file packages, real validation,
 real edge cases, and comments explaining *why* each decision beat the alternative.
+
+> **The last three are the 45-minute ones.** Most designs on this list are honestly 60–90 minutes of
+> work; in a real 45-minute round you get a slice. Tic-Tac-Toe, the meeting room scheduler and the
+> text editor are sized to be written end to end in the time you actually have, and each demo opens
+> with a minute-by-minute budget and an explicit list of **what to cut and what to say instead**.
 
 | Problem | Patterns combined | The hard part it drills |
 |---|---|---|
@@ -107,6 +112,11 @@ real edge cases, and comments explaining *why* each decision beat the alternativ
 | [Notification Service](src/com/lld/problems/notification/NotificationDemo.java) | **Bridge**, Template Method, Observer, Strategy | M types × N channels → M + N, exponential backoff, why an OTP ignores opt-out |
 | [Movie Ticket Booking](src/com/lld/problems/booking/BookingDemo.java) | Strategy, Decorator, Facade, State (via status) | **Seat holds with a TTL** — 20 threads race one seat, all-or-nothing locking, late payment rejected |
 | [Gaming Leaderboard](src/com/lld/problems/leaderboard/LeaderboardDemo.java) | Strategy ×3, Observer, Facade, DTO | Three ops, three structures; a **Fenwick tree** for O(log) rank, and the tie-break comparator that silently loses players |
+| [Tic-Tac-Toe (n×n, k players)](src/com/lld/problems/tictactoe/TicTacToeDemo.java) ⏱ | *Almost none — that's the point* | **Restraint**, and O(1) win detection via per-line counters (2000×2000 board: 0.4 ms vs 20.7 ms); win-before-draw ordering; the out-of-turn move an inferred-player API cannot catch |
+| [Meeting Room Scheduler](src/com/lld/problems/meetingscheduler/MeetingSchedulerDemo.java) ⏱ | Facade, value objects, Strategy (named, not built) | **Half-open intervals** (closed ones ban back-to-back meetings), `TreeMap` floor+ceiling conflict detection (9 ms vs 1,531 ms over 50k meetings), and 20 threads racing one slot — exactly one wins |
+| [Text Editor Undo/Redo](src/com/lld/problems/texteditor/TextEditorDemo.java) ⏱ | Command, Composite (macros) | **Command vs Memento measured** (38,574× less retained), the redo-stack bug reproduced until it throws, bounded history, typing coalescing, replace-all as one undo |
+
+⏱ = sized to be written end to end inside a 45-minute round.
 
 Run them the same way as any other demo:
 
@@ -121,6 +131,9 @@ java -cp out com.lld.problems.logger.LoggerDemo
 java -cp out com.lld.problems.notification.NotificationDemo
 java -cp out com.lld.problems.booking.BookingDemo
 java -cp out com.lld.problems.leaderboard.LeaderboardDemo
+java -cp out com.lld.problems.tictactoe.TicTacToeDemo
+java -cp out com.lld.problems.meetingscheduler.MeetingSchedulerDemo
+java -cp out com.lld.problems.texteditor.TextEditorDemo
 ```
 
 Each demo prints a narrated trace, including the failure cases — rejected inputs, races, sold-out
@@ -130,7 +143,7 @@ first for the reasoning, then the code for the execution.
 ## Running the code
 
 No build tool needed — plain Java (17+ required for records and sealed interfaces).
-Verified on **JDK 25**: all 45 demos compile and run clean, with zero `-Xlint:all` warnings.
+Verified on **JDK 25**: all 48 demos compile and run clean, with zero `-Xlint:all` warnings.
 
 ```powershell
 # from the repo root

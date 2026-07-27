@@ -151,6 +151,19 @@ transactions to settle a group"* — that's a greedy heap-based algorithm, and i
 
 ## Tic-Tac-Toe and Chess
 
+> **Full implementation:** [`src/com/lld/problems/tictactoe/`](../../src/com/lld/problems/tictactoe/TicTacToeDemo.java) — generalised to n×n and k players, with O(1) win detection.
+
+> **45-minute budget.** `0-05` clarify (n×n or 3×3? two players or k? undo? is a win a full line?) ·
+> `05-12` types and the API · `12-25` the board with O(1) win detection · `25-35` turn order, illegal
+> moves, draw-vs-win ordering · `35-45` follow-ups out loud, and code whichever one they pick.
+>
+> **This one finishes early on purpose**, so it discriminates on judgement rather than speed. Nearly
+> everything in the table below is *chess*. For plain tic-tac-toe, **build almost none of it** — one
+> enum, one record, one board class, one rules class. A `MoveStrategy`, a `BoardFactory`, State
+> classes for three statuses and an Observer for a two-player game are all abstraction with no second
+> implementation behind them, and each costs the minutes you needed for the win check. Being able to
+> explain *why you did not* reach for State scores higher than reaching for it.
+
 **Requirements.** Board, players, turn-taking, move validation, win/draw detection, undo.
 
 **Where the design pressure is.**
@@ -170,6 +183,15 @@ transactions to settle a group"* — that's a greedy heap-based algorithm, and i
 **The one thing interviewers probe.** *"Implement undo."* Then: *"undo a capture"* and *"undo
 castling."* This is exactly where the Command-vs-Memento trade-off becomes concrete — be ready to
 explain why you'd pick one, or use both.
+
+**For tic-tac-toe specifically, the probe is different and it is the board size.** *"Now it's
+1000 × 1000."* Re-scanning the row, column and two diagonals after every move is O(n) per move. Keep
+**per-line counters** instead — `rowCount[row][symbol]`, `colCount[col][symbol]`, and two diagonal
+counters — increment the four a move touches, and a win is a counter reaching `n`. O(1) per move, and
+it uses *less* memory than the grid it replaces: O(n × players) against O(n²). Two more that get
+checked: **test the win before the draw** (a final move can fill the board *and* win), and
+**take the player as a parameter** to `play(player, row, col)` — an API that infers the mover cannot
+detect an out-of-turn move at all.
 
 ---
 
@@ -345,6 +367,8 @@ the write-path contention entirely.
 
 ## Text Editor
 
+> **Full implementation:** [`src/com/lld/problems/texteditor/`](../../src/com/lld/problems/texteditor/TextEditorDemo.java) — the undo/redo core, with the Command-vs-Memento cost measured.
+
 **Requirements.** Insert/delete/format text; unlimited undo/redo; a document structure of
 sections/paragraphs/runs; render efficiently for large documents.
 
@@ -509,6 +533,78 @@ database.
 
 ---
 
+## Meeting Room Scheduler
+
+> **Full implementation:** [`src/com/lld/problems/meetingscheduler/`](../../src/com/lld/problems/meetingscheduler/MeetingSchedulerDemo.java)
+
+> **45-minute budget.** `0-05` clarify (half-open intervals? recurring? timezones? cancellations?) ·
+> `05-10` `Room`, `Meeting`, `RoomCalendar`, `MeetingScheduler` · `10-20` the overlap predicate and
+> the `TreeMap` conflict check · `20-30` book / cancel / available rooms · `30-38` earliest free slot ·
+> `38-45` the double-booking race, out loud.
+>
+> **Cut, and say you are cutting them:** recurring meetings (RRULE and "this and all future
+> occurrences" is a whole interview by itself), timezones ("store `Instant`, render in the viewer's
+> zone" — one sentence, no code), attendee-availability intersection (name the k-way interval merge,
+> do not write it), persistence, notifications, permissions.
+
+**Requirements.** Rooms with capacities; book a room for a time range; reject overlaps; cancel; list
+available rooms; find the earliest slot that fits a duration and a headcount.
+
+**Where the design pressure is.**
+1. **The interval model** — a one-line decision that determines whether the whole system works.
+2. **Conflict detection on the write path**, hit on every keystroke of a booking UI.
+3. **Check-then-act** — "is it free?" followed by "book it" is the double-booking bug.
+4. **Room selection is policy**, not an algorithm.
+
+| Pattern | Applied to | Why this one |
+|---|---|---|
+| **Facade** | `MeetingScheduler` | Rooms, calendars and locking are three things a caller should not have to coordinate. It is also the natural transaction boundary — the only place where check-and-insert happens atomically. |
+| **Value objects** | `Meeting`, `Room` as records | The overlap rule lives on `Meeting` with the data it validates, and immutability means a booking handed to a caller cannot be mutated into a conflict behind the calendar's back. |
+| **Strategy** *(named, not built)* | Room allocation | Best-fit vs first-fit vs floor-preference vs cost-based is a genuine variation axis — but with one implementation it is a private method. Name it as where Strategy *would* go if they ask for pluggable allocation. |
+| **Repository** *(named, not built)* | Calendars | The follow-up is "where is this stored?", and the answer changes the concurrency story completely. |
+
+**The interval decision, which is where most answers break.** Use **half-open** intervals,
+`[start, end)`: the meeting occupies its start instant and not its end instant. With closed intervals,
+a 10:00–11:00 meeting conflicts with an 11:00–12:00 meeting and **nobody in the building can book
+back-to-back**. Half-open also collapses the overlap test to one sentence worth saying out loud —
+*"two intervals overlap when each starts before the other ends"*:
+
+```java
+start.isBefore(otherEnd) && otherStart.isBefore(end)
+```
+
+Two strict comparisons, no `equals`, no boundary cases. Candidates who enumerate "case 1: A starts
+inside B, case 2: B starts inside A, case 3: A contains B…" usually miss one and always take longer.
+
+**The data structure, which is the algorithmic core.** A `List<Meeting>` scanned for overlaps is
+correct and O(n) on the write path. Keep the room's bookings in a `TreeMap<Instant, Meeting>` sorted
+by start instead, and hold the invariant *no two meetings in a room overlap*. Then only **two**
+meetings can possibly conflict with a new `[start, end)`:
+
+- `floorEntry(start)` — the last meeting starting at or before you. It conflicts if it has not
+  finished, i.e. its end is after your start.
+- `ceilingEntry(start)` — the first meeting starting at or after you. It conflicts if it begins
+  before your end.
+
+Nothing further away can reach across, because it would have to overlap one of those two, and the
+invariant says they do not overlap each other. O(log n), no iteration. *(Measured in the demo: 50,000
+meetings, 2,000 checks — ~9 ms against ~1,530 ms.)* The same invariant makes "earliest free slot" a
+loop that **jumps the cursor to the end of each blocking meeting** rather than stepping forward in
+15-minute increments.
+
+**The one thing interviewers probe.** *"Two people book the same room at the same instant."* Name the
+race — check-then-act — and note that a thread-safe calendar does **not** fix it: two individually
+atomic methods still leave the gap between them. The check and the insert must be one atomic step.
+Then pick your granularity out loud: a lock **per room** so booking the huddle room never blocks the
+boardroom (and then every structure shared *across* rooms has to defend itself), or one global lock,
+which is also correct and much easier to defend when you are short on time.
+
+The follow-up behind the follow-up: *"now it's three servers."* In-process `synchronized` silently
+stops working the day you scale out — the lock has to move to the database as a unique constraint on
+(room, slot) or a `SELECT … FOR UPDATE`.
+
+---
+
 ## Traffic Light Controller
 
 **Requirements.** Signals cycle red → green → yellow; timing per direction; emergency override;
@@ -553,6 +649,17 @@ stable *by assumption*, and if that assumption is wrong, Visitor is the wrong pa
 
 ## Undo and Redo System
 
+> **Full implementation:** [`src/com/lld/problems/texteditor/`](../../src/com/lld/problems/texteditor/TextEditorDemo.java)
+
+> **45-minute budget.** `0-05` clarify (what is one undo step? bounded history? redo? macros?) ·
+> `05-12` `Command`, `Document`, `CommandHistory` · `12-22` insert and delete, capturing the inverse ·
+> `22-32` the two stacks plus the clear-redo rule · `32-40` bounded depth, then typing coalescing if
+> time allows · `40-45` Command vs Memento out loud.
+>
+> **Cut if you are short:** coalescing, macros, and the text buffer itself (say "`StringBuilder` is
+> O(n) per edit; a gap buffer, piece table or rope is the upgrade" and move on). **Do not cut**
+> clearing the redo stack — that is the line being watched for.
+
 **Requirements.** Undo/redo arbitrary operations; bounded history; grouped (macro) operations.
 
 | Pattern | Applied to | Why this one |
@@ -575,6 +682,14 @@ Real systems use both: deltas for the common case, snapshots at checkpoints. Bei
 **The one thing interviewers probe.** *"What clears the redo stack?"* Performing a new command after
 an undo. Nearly everyone forgets this. Second probe: *"bound the memory"* — cap depth, or snapshot
 periodically and discard older deltas.
+
+**Three details that separate a working answer from a correct one.**
+1. **Capture the inverse at execute time, not at construction.** "Delete 5 chars at 12" does not yet
+   know *which* five characters those are, and by the time undo runs they no longer exist anywhere.
+2. **A macro undoes in reverse order.** Each forward edit shifts the positions of the ones after it,
+   so undoing first-to-last unwinds against positions that have already moved.
+3. **Evict from the oldest end.** Capping the stack by dropping the newest entry silently breaks the
+   next Ctrl+Z — the only one anybody presses.
 
 ---
 

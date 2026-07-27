@@ -18,7 +18,7 @@
 | Doc | Contents |
 |---|---|
 | [CHEATSHEET.md](reference/CHEATSHEET.md) | Symptom → pattern lookup, the 12 confusing pairs, trade-offs worth volunteering, 30-second selection heuristic |
-| [PROBLEMS.md](reference/PROBLEMS.md) | 25 classic problems: requirements → where the design pressure is → why each pattern was chosen → what interviewers probe |
+| [PROBLEMS.md](reference/PROBLEMS.md) | 26 classic problems: requirements → where the design pressure is → why each pattern was chosen → what interviewers probe |
 
 ## patterns/
 
