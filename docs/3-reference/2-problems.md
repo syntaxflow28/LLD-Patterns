@@ -36,6 +36,42 @@ ticket; compute a fee by duration; show availability.
 | **Strategy** (2nd) | `SpotAllocator` | Nearest-to-entrance vs first-fit vs floor-balancing is a second, *independent* algorithm. Worth naming separately — it shows you can spot more than one variation axis. |
 | **Observer** *(optional)* | Availability displays | Multiple gate displays react to occupancy changes without the lot knowing they exist. |
 
+```mermaid
+classDiagram
+    direction LR
+    class ParkingLot {
+        -Map freeSpotsByType
+        +park(Vehicle) Ticket
+        +unpark(Ticket) Receipt
+    }
+    class FeeStrategy {
+        <<interface>>
+        +calculate(Ticket) Money
+    }
+    class SpotAllocator {
+        <<interface>>
+        +allocate(SpotType) Spot
+    }
+    class TicketState {
+        <<interface>>
+        +pay(Ticket)
+        +exit(Ticket)
+    }
+    class SpotFactory
+    class Floor
+    class Spot
+    class Ticket
+    ParkingLot *-- Floor
+    Floor *-- Spot
+    ParkingLot o-- FeeStrategy : pricing axis
+    ParkingLot o-- SpotAllocator : allocation axis
+    ParkingLot ..> SpotFactory : asks by SpotType
+    Ticket o-- TicketState : lifecycle
+```
+
+Two `o--` edges, two independent axes of change. Being able to point at them and say *these are the
+things I expect to vary* is the answer the table above is really making.
+
 **The one thing interviewers probe.** *"Two gates park at the same instant — what stops both getting
 spot 12?"* Answer with the specific race (check-then-act) and a concrete fix: a
 `Map<SpotType, ConcurrentLinkedQueue<Spot>>` where `poll()` is atomic, giving race-free O(1)
@@ -93,6 +129,20 @@ close; scheduling across multiple cars.
 | **Observer** | Floor displays, logging | Many consumers react to position changes; the elevator shouldn't know about any of them. |
 | **Singleton** | `ElevatorController` | One dispatcher owns the fleet view needed for scheduling. |
 
+```mermaid
+flowchart LR
+    HR["hall request<br/>floor 3, going down"] --> Q["request queue<br/><i>Command objects</i>"]
+    CR["cabin request<br/>floor 7"] --> Q
+    Q --> SCH["SchedulingStrategy<br/><i>FCFS / SCAN / LOOK / nearest car</i>"]
+    SCH --> E1["Elevator 1<br/>MovingUp"]
+    SCH --> E2["Elevator 2<br/>Idle"]
+    E1 --> OBS["floor displays, logging<br/><i>observers</i>"]
+    E2 --> OBS
+```
+
+Requests are objects because the box they flow into is a *queue* — you cannot sort, deduplicate or
+cancel a method call.
+
 **The one thing interviewers probe.** *"An elevator is going up past floor 5 and someone on floor 3
 presses down — what happens?"* This tests whether your scheduler models *direction* and request type,
 not just floor numbers. Keep separate up/down request sets per car.
@@ -108,6 +158,32 @@ not just floor numbers. Keep separate up/down request sets per car.
 
 **Where the design pressure is.** **Two independent axes** — notification *type* and delivery
 *channel*. This is the classic Bridge setup, and spotting it is the point of the problem.
+
+```mermaid
+flowchart LR
+    subgraph explosion["Subclass both axes - M x N classes"]
+        A["OtpEmail"]
+        B["OtpSms"]
+        C["OtpPush"]
+        D["OrderEmail"]
+        E["OrderSms"]
+        F["OrderPush"]
+        G["MarketingEmail"]
+        H["MarketingSms"]
+        I["MarketingPush"]
+    end
+    subgraph bridged["Bridge the axes - M + N classes"]
+        T1["Otp"] --> CH["Channel<br/><i>interface</i>"]
+        T2["OrderUpdate"] --> CH
+        T3["Marketing"] --> CH
+        CH --> C1["Email"]
+        CH --> C2["Sms"]
+        CH --> C3["Push"]
+    end
+```
+
+Nine boxes versus six today. Add WhatsApp and it is twelve versus seven — and on the right, every
+notification type supports it without being touched.
 
 | Pattern | Applied to | Why this one |
 |---|---|---|
@@ -289,6 +365,27 @@ proportional to nearby drivers only. Patterns won't save you here; the data stru
 | **Singleton** | Shared cache instance | One cache, or you're not caching. |
 | **Observer** *(optional)* | Eviction/expiry listeners | Only if the requirements mention write-back or metrics. |
 
+```mermaid
+flowchart LR
+    subgraph map["HashMap - O(1) lookup"]
+        K1["key A"]
+        K2["key B"]
+        K3["key C"]
+    end
+    subgraph list["Doubly-linked list - O(1) reorder and evict"]
+        H["head<br/>most recent"] <--> N1["node B"]
+        N1 <--> N2["node A"]
+        N2 <--> N3["node C"]
+        N3 <--> T["tail<br/>evict from here"]
+    end
+    K1 --> N2
+    K2 --> N1
+    K3 --> N3
+```
+
+The three arrows crossing between the boxes are the trick: each map value holds a **direct node
+reference**, so promoting a hit to the head never scans the list.
+
 **The one thing interviewers probe.** *"Get O(1) for both operations."* `HashMap` + doubly-linked
 list: the map gives O(1) lookup, the list gives O(1) reorder and eviction, and each map value holds a
 direct node reference so you never scan the list. Then: *"make it thread-safe"* — segment locking or
@@ -339,6 +436,16 @@ view counts every time. So the design carries a third structure whose only job i
 O(log range). Volunteer its cost too: memory scales with the score *range*, not the player count, so
 bucket or coordinate-compress if scores are huge or fractional.
 
+```mermaid
+flowchart LR
+    S["submitScore(player, points)"] --> M["HashMap<br/>player to current score<br/><i>O(1) lookup</i>"]
+    S --> TS["TreeSet of entries<br/><i>O(k) top K</i>"]
+    S --> BIT["Fenwick tree indexed by score<br/><i>O(log range) rank of player</i>"]
+```
+
+Three write targets for one submission — which is exactly why the fan-out belongs behind a facade and
+why submission is a read-modify-write that needs a concurrency answer.
+
 **The one thing interviewers probe.** *"Two players have the same score — what happens?"* This is a
 trap with a specific, demonstrable failure. The natural comparator is "by score, descending", and
 `TreeSet` treats *compare returns 0* as *this element is already present* — so the second player on
@@ -380,6 +487,20 @@ sections/paragraphs/runs; render efficiently for large documents.
 | **Flyweight** | Character/glyph formatting | A million characters each holding font, size and colour is gigabytes. Font data is intrinsic and shared; position is extrinsic and passed in. This is the textbook Flyweight example — the GoF book uses exactly this case. |
 | **Iterator** | Traversing the document | Multiple traversal orders (by character, by word, by paragraph) over one structure without exposing nodes. |
 | **Visitor** *(optional)* | Export to PDF/HTML/Markdown | Node types are stable; export formats keep growing — exactly Visitor's sweet spot. |
+
+Command and Memento are not alternatives here — real editors interleave them:
+
+```mermaid
+flowchart LR
+    C0["checkpoint<br/><i>Memento snapshot</i>"] --> D1["insert delta"]
+    D1 --> D2["delete delta"]
+    D2 --> D3["format delta"]
+    D3 --> C1["checkpoint<br/><i>Memento snapshot</i>"]
+    C1 --> D4["replace-all<br/><i>painful to invert</i>"]
+```
+
+Cheap invertible edits are stored as deltas; the expensive ones sit next to a snapshot. Undoing means
+replaying backwards to the nearest checkpoint, which bounds both memory and undo cost.
 
 **The one thing interviewers probe.** *"Undo and redo together."* Two stacks: undo pops → pushes to
 redo; **a new edit clears the redo stack**. Candidates forget that last rule constantly. Then:

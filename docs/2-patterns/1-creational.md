@@ -35,6 +35,23 @@ allocate memory, run the constructor, assign the reference. Without `volatile` t
 steps 2 and 3, so another thread can observe a **non-null but half-constructed** object. `volatile`
 forbids that reordering and guarantees visibility across threads.
 
+```mermaid
+sequenceDiagram
+    participant T1 as Thread 1
+    participant H as Heap
+    participant T2 as Thread 2
+    T1->>H: step 1 - allocate space
+    T1->>H: step 3 - assign reference
+    Note over H: instance is now non-null<br/>but fields are still defaults
+    T2->>H: read instance
+    H-->>T2: non-null, so skip the lock
+    Note over T2: uses a half-built object
+    T1->>H: step 2 - run constructor
+    Note over T1,T2: too late
+```
+
+The reordering of steps 2 and 3 is legal without `volatile`. That is the entire bug.
+
 **In the wild:** `Runtime.getRuntime()`, `java.awt.Desktop.getDesktop()`, Spring beans (singleton
 scope by default — but managed by the container, which is the better model).
 
@@ -70,6 +87,35 @@ When the channel becomes runtime-configurable, that `new` turns into a `switch` 
 
 **Structure.** A product interface, several concrete products, and a factory that maps some input
 (enum, string, config) to a concrete product. Callers depend only on the interface.
+
+```mermaid
+classDiagram
+    direction LR
+    class Client {
+        never names a concrete class
+    }
+    class NotificationFactory {
+        +create(Channel) Notification
+    }
+    class Notification {
+        <<interface>>
+        +send(Recipient)
+    }
+    class EmailNotification
+    class SmsNotification
+    class PushNotification
+    Client --> NotificationFactory : asks by Channel
+    Client --> Notification : uses
+    Notification <|.. EmailNotification
+    Notification <|.. SmsNotification
+    Notification <|.. PushNotification
+    NotificationFactory ..> EmailNotification : creates
+    NotificationFactory ..> SmsNotification : creates
+    NotificationFactory ..> PushNotification : creates
+```
+
+The `Client` has two edges and neither touches a concrete product. That is the whole benefit — the
+`switch` exists once, inside the factory, instead of at five call sites.
 
 **Two variants worth naming.**
 - *Simple Factory* (what most people mean): one factory class with a `create(type)` method. Not
@@ -121,6 +167,36 @@ that factory matches.
 factory per family; product interfaces + concrete products per family. Client holds the abstract
 factory and never sees a concrete product class.
 
+```mermaid
+classDiagram
+    direction LR
+    class RegionFactory {
+        <<interface>>
+        +payment() PaymentProcessor
+        +invoice() InvoiceFormatter
+        +tax() TaxCalculator
+    }
+    class IndiaFactory
+    class UsFactory
+    class UpiPayment
+    class GstInvoice
+    class GstTax
+    class CardPayment
+    class UsInvoice
+    class SalesTax
+    RegionFactory <|.. IndiaFactory
+    RegionFactory <|.. UsFactory
+    IndiaFactory ..> UpiPayment
+    IndiaFactory ..> GstInvoice
+    IndiaFactory ..> GstTax
+    UsFactory ..> CardPayment
+    UsFactory ..> UsInvoice
+    UsFactory ..> SalesTax
+```
+
+Because the client picks a factory once, pairing `GstTax` with `UsInvoice` is not merely discouraged —
+there is no code path that produces it.
+
 **The key distinction from Factory Method.** Factory Method = one product, chosen by subclassing.
 Abstract Factory = *N* related products, chosen by swapping one factory object. Abstract Factory is
 usually implemented *using* several factory methods.
@@ -161,6 +237,20 @@ distinction, and a single `build()` where you can validate cross-field invariant
 
 **Structure.** A static nested `Builder` class mirrors the product's fields; each setter returns
 `this` for chaining; `build()` validates and calls the product's private constructor.
+
+```mermaid
+flowchart LR
+    A["Ticket.builder<br/>id, entryTime<br/><i>required</i>"] --> B["spot(a4)"]
+    B --> C["vehicle(car)"]
+    C --> D["discount(10)"]
+    D --> E["build()<br/>cross-field validation"]
+    E --> F["immutable Ticket<br/>every field final"]
+    E -.->|"exit before entry"| X["IllegalArgumentException"]
+```
+
+Required arguments enter through the builder's constructor, so they cannot be forgotten; optional
+ones are named method calls, so they cannot be transposed. Validation waits for `build()` because
+cross-field rules need the complete picture.
 
 **Design details that earn points.**
 - Put **required** args in the builder's constructor, optional ones in fluent methods.
@@ -205,6 +295,21 @@ otherwise have to re-specify.
   clone corrupts the original. Fine only if all nested state is immutable.
 - **Deep** copies nested mutable objects recursively. Safe but costlier, and you must handle cycles.
 
+```mermaid
+flowchart TB
+    subgraph shallow["Shallow copy - the aliasing bug"]
+        O1["original<br/>abilities"] --> L1["ArrayList<br/>fireball, dash"]
+        C1["clone<br/>abilities"] --> L1
+    end
+    subgraph deep["Deep copy - safe"]
+        O2["original<br/>abilities"] --> L2["ArrayList<br/>fireball, dash"]
+        C2["clone<br/>abilities"] --> L3["ArrayList copy<br/>fireball, dash"]
+    end
+```
+
+In the left case `clone.abilities.add(...)` silently mutates the original. That is the failure the
+copy constructor below is written to prevent.
+
 Java's `Cloneable`/`Object.clone()` is widely considered broken (marker interface, protected method,
 shallow by default, doesn't play well with `final` fields). **Prefer a copy constructor or a static
 `copyOf` factory** — say this in an interview, it's a real signal.
@@ -247,6 +352,34 @@ create/destroy churn dominates your latency. A pool amortizes that cost across m
 
 **Lifecycle.** `acquire()` → use → `release()`. The pool creates lazily up to `maxSize`, blocks (or
 times out) when exhausted, and **resets object state** on release.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Available: created lazily, up to maxSize
+    Available --> InUse: acquire
+    InUse --> Available: release, then reset state
+    InUse --> Discarded: validation failed
+    Discarded --> [*]
+```
+
+The borrower's side is where the interesting decisions live:
+
+```mermaid
+flowchart TD
+    A["acquire"] --> B{"idle object available?"}
+    B -- "Yes" --> C{"still valid?"}
+    C -- "Yes" --> D["hand it over"]
+    C -- "No" --> E["discard, create a replacement"]
+    E --> D
+    B -- "No" --> F{"pool below maxSize?"}
+    F -- "Yes" --> G["create a new one"]
+    G --> D
+    F -- "No" --> H["wait with a timeout"]
+    H --> B
+```
+
+The arrow from `wait` back to the **condition check** rather than straight to `hand it over` is why
+`wait()` belongs in a `while` loop — see below.
 
 **The four things you must address (interviewers probe all of them).**
 1. **Thread safety.** `acquire`/`release` are critical sections. Use `synchronized` + `wait/notifyAll`,

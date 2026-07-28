@@ -42,6 +42,16 @@ three fields — a record is better") is one of the strongest senior signals ava
 | Code core flow | 16 | 22 | never skip |
 | Trade-offs & extensions | 6 | 8 | you overran — but say them out loud anyway |
 
+```mermaid
+flowchart LR
+    A["1. Clarify &amp; scope<br/>5 min"] --> B["2. Entities &amp; enums<br/>4 min"]
+    B --> C["3. APIs / interfaces<br/>4 min"]
+    C --> D["4. Class design<br/>10 min"]
+    D --> E["5. Code the core flow<br/>16 min"]
+    E --> F["6. Trade-offs<br/>6 min"]
+    D -.->|"a new requirement surfaces - go back and re-scope out loud"| A
+```
+
 If you're 20 minutes in and haven't written a class, you're behind. If you're 20 minutes in and
 haven't asked a question, you're in worse trouble.
 
@@ -184,21 +194,21 @@ That single habit is what makes an interviewer write "applies patterns with judg
 
 ### A layering that always works
 
+```mermaid
+flowchart TB
+    C["Controller / CLI<br/><i>thin: parse input, call one service method</i>"]
+    S["Service / Facade<br/><i>orchestration, transaction boundary</i>"]
+    D["Domain<br/><i>entities, value objects, strategies, states</i><br/><b>the business rules live here</b>"]
+    R["Repository interface<br/><i>domain-owned abstraction</i>"]
+    I["Infrastructure<br/><i>JDBC / in-memory / HTTP</i>"]
+    C --> S
+    S --> D
+    D --> R
+    I -.->|"implements"| R
 ```
-Controller / CLI        ← thin: parse input, call one service method
-   ↓
-Service / Facade        ← orchestration, transaction boundary
-   ↓
-Domain (entities,       ← the business rules live HERE
-  value objects,
-  strategies, states)
-   ↓
-Repository interface    ← domain-owned abstraction
-   ↓
-Infrastructure impl     ← JDBC / in-memory / HTTP
-```
-Dependencies point **inward**. The domain never imports infrastructure — that's the Dependency
-Inversion Principle expressed as architecture.
+
+Dependencies point **inward** — note that the bottom arrow runs *upward*. The domain never imports
+infrastructure; that's the Dependency Inversion Principle expressed as architecture.
 
 ### A minimal diagram is enough
 
@@ -282,6 +292,23 @@ Almost every LLD system is concurrent, and most candidates ignore it. Have a con
 
 **Name the race first.** *"Two threads call `park()` at the same time, both read spot #12 as free, both
 assign it. Classic check-then-act race."* Naming it earns more than any fix.
+
+```mermaid
+sequenceDiagram
+    participant T1 as Thread 1
+    participant L as ParkingLot
+    participant T2 as Thread 2
+    T1->>L: findFreeSpot()
+    L-->>T1: spot 12
+    T2->>L: findFreeSpot()
+    L-->>T2: spot 12
+    T1->>L: assign(spot 12)
+    T2->>L: assign(spot 12)
+    Note over L: two tickets issued for one spot
+```
+
+The bug lives in the gap between the check and the act. Every fix below closes that gap — they only
+differ in how much they serialise while doing it.
 
 **Then pick a mechanism and justify the granularity:**
 

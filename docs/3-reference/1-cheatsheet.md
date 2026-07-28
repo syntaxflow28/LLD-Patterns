@@ -105,6 +105,21 @@ SDE-2 / senior LLD rounds.
 - **Visitor vs Strategy:** Visitor dispatches on the *element type* (double dispatch);
   Strategy is one algorithm applied uniformly.
 
+Strategy and State draw the same class diagram, so the difference is only visible at runtime — in
+**who performs the swap**:
+
+```mermaid
+flowchart LR
+    subgraph strat["Strategy - the client decides"]
+        CL["client"] -->|"picks one and injects it"| C1["Context"]
+        C1 --> A1["HourlyFee"]
+    end
+    subgraph st["State - the state decides"]
+        C2["Context"] --> S1["HasMoney"]
+        S1 -->|"on selectProduct, swaps the context to"| S2["Dispensing"]
+    end
+```
+
 **Practical**
 - **Registry vs Factory:** a Factory *decides* which object to create, so it changes when the product
   set changes; a Registry *looks up* something handed to it and never knows the concrete types.
@@ -204,6 +219,28 @@ SDE-2 / senior LLD rounds.
 6. **What must be tracked or reversed?** → Command / Memento
 7. **What is a tree?** → Composite (+ Visitor for operations over it)
 8. **What is too expensive?** → Flyweight / Proxy / Object Pool
+
+```mermaid
+flowchart TD
+    Q0["What is the actual pain?"] --> Q1{"Something varies and<br/>keeps getting edited?"}
+    Q1 -- "yes, one axis" --> S1["Strategy / Factory"]
+    Q1 -- "yes, two axes" --> S2["Bridge"]
+    Q1 -- "no" --> Q2{"Something must react when<br/>something else changes?"}
+    Q2 -- "one to many" --> S3["Observer"]
+    Q2 -- "many to many" --> S4["Mediator"]
+    Q2 -- "no" --> Q3{"Behaviour depends on a<br/>lifecycle or mode?"}
+    Q3 -- "yes" --> S5["State"]
+    Q3 -- "no" --> Q4{"Hard to build,<br/>or hard to use?"}
+    Q4 -- "hard to build" --> S6["Builder / Factory / Prototype"]
+    Q4 -- "hard to use" --> S7["Facade / Adapter"]
+    Q4 -- "neither" --> Q5{"Must operations be<br/>tracked or reversed?"}
+    Q5 -- "yes" --> S8["Command / Memento"]
+    Q5 -- "no" --> Q6{"Is the data a tree?"}
+    Q6 -- "yes" --> S9["Composite, plus Visitor<br/>for operations over it"]
+    Q6 -- "no" --> Q7{"Too expensive in<br/>memory or setup time?"}
+    Q7 -- "yes" --> S10["Flyweight / Proxy / Object Pool"]
+    Q7 -- "no" --> S11["No pattern.<br/>Plain, well-named classes."]
+```
 
 > If none of these fit cleanly, **don't force a pattern**. Plain, well-named classes with clear
 > responsibilities beat a misapplied pattern every time — and saying so out loud is a senior signal.

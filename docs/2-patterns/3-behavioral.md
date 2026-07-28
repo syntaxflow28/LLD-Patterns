@@ -26,6 +26,26 @@ edited for every new payment type. Strategy turns each branch into a class.
 **Structure.** A *Strategy* interface with one method; *ConcreteStrategies*; a *Context* that holds a
 strategy reference and delegates to it. The client chooses which strategy the context gets.
 
+```mermaid
+classDiagram
+    direction LR
+    class ParkingLot {
+        -FeeStrategy fees
+        +checkout(Ticket) Money
+    }
+    class FeeStrategy {
+        <<interface>>
+        +calculate(Ticket) Money
+    }
+    class FlatRateFee
+    class HourlyFee
+    class WeekendSurgeFee
+    ParkingLot o-- FeeStrategy : delegates, never inspects
+    FeeStrategy <|.. FlatRateFee
+    FeeStrategy <|.. HourlyFee
+    FeeStrategy <|.. WeekendSurgeFee
+```
+
 **Why it's the #1 LLD pattern.** It's the most direct expression of "encapsulate what varies" and it
 satisfies OCP, DIP and SRP simultaneously. It also composes with everything: a **Factory** picks the
 strategy, a **Map<Enum, Strategy>** registry removes the last conditional, and each strategy is
@@ -76,6 +96,45 @@ domain logic for every new consumer.
 
 **Structure.** *Subject* (maintains `List<Observer>`, exposes `subscribe`/`unsubscribe`/`notify`);
 *Observers* implementing a single `update(...)` method.
+
+```mermaid
+classDiagram
+    direction LR
+    class Order {
+        -List~OrderObserver~ observers
+        +subscribe(OrderObserver)
+        +unsubscribe(OrderObserver)
+        +ship()
+    }
+    class OrderObserver {
+        <<interface>>
+        +onShipped(OrderEvent)
+    }
+    class EmailNotifier
+    class AnalyticsTracker
+    class WarehouseFeed
+    Order o-- OrderObserver : notifies
+    OrderObserver <|.. EmailNotifier
+    OrderObserver <|.. AnalyticsTracker
+    OrderObserver <|.. WarehouseFeed
+```
+
+At runtime `Order.ship()` fans out without naming a single consumer, which is why the partner webhook
+arrives next quarter as a new class rather than an edit to the domain:
+
+```mermaid
+sequenceDiagram
+    participant C as Caller
+    participant O as Order
+    participant E as EmailNotifier
+    participant A as AnalyticsTracker
+    participant W as WarehouseFeed
+    C->>O: ship()
+    O->>E: onShipped(event)
+    O->>A: onShipped(event)
+    O->>W: onShipped(event)
+    Note over O: Order references the interface only
+```
 
 **Push vs pull — a real design decision.**
 - **Push:** the subject sends the changed data (`update(stock, price)`). Simple, but the subject must
@@ -138,6 +197,48 @@ all), and adding a state means auditing every method in the class.
 behaviour **and the transitions**; a *Context* holding the current state and delegating every public
 method to it.
 
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> HasMoney: insertCoin
+    HasMoney --> HasMoney: insertCoin
+    HasMoney --> Dispensing: selectProduct
+    HasMoney --> Idle: refund
+    Dispensing --> Idle: dispensed
+    Dispensing --> OutOfService: jam detected
+    Idle --> OutOfService: maintenance
+    OutOfService --> Idle: restocked
+```
+
+Every arrow is a method on a state class, and every *absent* arrow is an operation that state simply
+does not implement. `selectProduct` on `Idle` fails in one obvious place instead of falling through a
+nest of guards.
+
+```mermaid
+classDiagram
+    direction LR
+    class VendingMachine {
+        <<context>>
+        -VendingState current
+        +insertCoin(Coin)
+        +selectProduct(String)
+    }
+    class VendingState {
+        <<interface>>
+        +insertCoin(ctx, Coin)
+        +selectProduct(ctx, String)
+    }
+    class IdleState
+    class HasMoneyState
+    class DispensingState
+    class OutOfServiceState
+    VendingMachine o-- VendingState : delegates everything
+    VendingState <|.. IdleState
+    VendingState <|.. HasMoneyState
+    VendingState <|.. DispensingState
+    VendingState <|.. OutOfServiceState
+```
+
 **The defining characteristic.** States own their transitions — `HasCoinState.selectProduct()` calls
 `context.setState(dispensing)`. Behaviour and the transition table live together, so the machine is
 readable state by state, and an illegal transition is simply a method that says "you can't do that
@@ -196,6 +297,52 @@ it, or reverse it. Turning the call into an object makes all of that possible.
 receiver plus the parameters needed; *Receiver* (the object doing real work); *Invoker* (triggers
 commands, owns history); *Client* (creates and wires commands).
 
+```mermaid
+classDiagram
+    direction LR
+    class Invoker {
+        -Deque~Command~ undoStack
+        -Deque~Command~ redoStack
+        +run(Command)
+        +undo()
+        +redo()
+    }
+    class Command {
+        <<interface>>
+        +execute()
+        +undo()
+    }
+    class InsertText
+    class DeleteText
+    class MacroCommand
+    class Document {
+        <<receiver>>
+    }
+    Invoker o-- Command : history
+    Command <|.. InsertText
+    Command <|.. DeleteText
+    Command <|.. MacroCommand
+    MacroCommand o-- Command : composite of steps
+    InsertText --> Document : acts on
+    DeleteText --> Document : acts on
+```
+
+Because a call is now an object, the invoker can keep two stacks of them:
+
+```mermaid
+flowchart LR
+    N["new command"] --> E["execute"]
+    E --> U["push onto undo stack"]
+    U --> CLR["clear the redo stack"]
+    UN["undo"] --> POP["pop undo, call undo"]
+    POP --> PR["push onto redo stack"]
+    RE["redo"] --> POP2["pop redo, call execute"]
+    POP2 --> U
+```
+
+Clearing the redo stack on a fresh command is the step most candidates forget — without it, redo
+replays an edit against a document that has since diverged.
+
 **What the pattern unlocks (this is the "why").**
 - **Undo/redo** — an undo stack and a redo stack of commands.
 - **Queuing & scheduling** — commands are serializable work units for a thread pool or job queue.
@@ -245,11 +392,37 @@ duplicates everywhere a request is raised, and reordering approvers means editin
 processes or forwards; *ConcreteHandlers* implementing the decision; a *Client* that builds the chain
 and hands the request to the head.
 
+```mermaid
+flowchart LR
+    R["withdraw 3700"] --> H1["2000 handler<br/>dispenses 1"]
+    H1 -->|"remainder 1700"| H2["500 handler<br/>dispenses 3"]
+    H2 -->|"remainder 200"| H3["100 handler<br/>dispenses 2"]
+    H3 -->|"remainder 0"| D["done"]
+    H3 -.->|"remainder still &gt; 0"| F["unhandled: throw, default, or log"]
+```
+
+The dashed edge is the design decision people skip. A chain does **not** guarantee anyone handles the
+request, so the fall-off-the-end policy has to be stated.
+
 **Two chain semantics — be explicit about which you're building.**
 - **Pure / "first match wins":** exactly one handler processes it and the chain stops. Approvals,
   exception handlers, dispatchers.
 - **Impure / "pipeline":** every handler contributes and passes along. Middleware — auth → rate limit
   → logging → handler.
+
+```mermaid
+flowchart TB
+    subgraph pure["Pure - first match wins"]
+        P1["team lead<br/>limit 1k"] --> P2["manager<br/>limit 10k"]
+        P2 --> P3["director<br/>limit 100k"]
+        P2 -.->|"approves, chain stops here"| PX["decision"]
+    end
+    subgraph pipeline["Impure - every handler contributes"]
+        Q1["auth"] --> Q2["rate limit"]
+        Q2 --> Q3["logging"]
+        Q3 --> Q4["business handler"]
+    end
+```
 
 **Design points that earn credit.**
 - **What if nobody handles it?** Define the policy: throw, return a default, or log. Silent
@@ -292,6 +465,21 @@ Copy-paste gives you five near-identical methods that drift apart; the sixth dev
 
 **Structure.** An abstract base class with a `final` template method that calls: concrete steps
 (shared), abstract steps (must be overridden), and **hooks** (optional overrides with a default).
+
+```mermaid
+flowchart TD
+    T["process() - declared final<br/>so the order cannot be changed"] --> S1["openSource()<br/><b>concrete</b> - shared"]
+    S1 --> S2["parse()<br/><b>abstract</b> - you must override"]
+    S2 --> S3["transform()<br/><b>abstract</b> - you must override"]
+    S3 --> S4{"shouldNotify()<br/><b>hook</b> - defaults to false"}
+    S4 -- "true" --> S5["notify()"]
+    S4 -- "false" --> S6["close()<br/><b>concrete</b> - shared"]
+    S5 --> S6
+```
+
+Three step kinds, three different contracts: shared steps you inherit, abstract steps you are forced
+to supply, and hooks you may ignore. Marking the template method `final` is what stops a subclass
+from quietly reordering the algorithm.
 
 **Details that matter.**
 - **Make the template method `final`.** Otherwise a subclass can reorder or skip steps, defeating the
@@ -348,6 +536,42 @@ linked list. An iterator gives sequential access while keeping the structure pri
 **Structure.** An *Iterator* interface (`hasNext`, `next`) and an *Aggregate* that produces iterators.
 In Java: implement `Iterable<T>` to get for-each support for free.
 
+```mermaid
+classDiagram
+    direction LR
+    class Playlist {
+        -List~Song~ songs
+        +iterator() SongIterator
+        +shuffledIterator() SongIterator
+    }
+    class SongIterator {
+        <<interface>>
+        +hasNext() boolean
+        +next() Song
+    }
+    class SequentialCursor {
+        -int position
+    }
+    class ShuffledCursor {
+        -int position
+        -int[] order
+    }
+    Playlist ..> SequentialCursor : creates
+    Playlist ..> ShuffledCursor : creates
+    SongIterator <|.. SequentialCursor
+    SongIterator <|.. ShuffledCursor
+```
+
+The cursor position lives in the iterator, **not** the playlist — which is exactly why two loops over
+the same playlist can run at once without interfering:
+
+```mermaid
+flowchart LR
+    P["Playlist<br/>songs 0..4"] --> I1["cursor A<br/>position 2"]
+    P --> I2["cursor B<br/>position 0"]
+    P --> I3["shuffled cursor<br/>position 3"]
+```
+
 **Points worth making.**
 - **Multiple simultaneous traversals.** Each `iterator()` call returns an independent cursor with its
   own position — that's why the state lives in the iterator, not the collection.
@@ -392,6 +616,27 @@ Mediator collapses that to N×1: everyone knows the mediator; nobody knows anybo
 **Structure.** A *Mediator* interface; a *ConcreteMediator* holding references to all colleagues and
 implementing the interaction logic; *Colleagues* that hold only a mediator reference and communicate
 exclusively through it.
+
+```mermaid
+flowchart LR
+    subgraph direct["Direct references - every pair is an edge"]
+        A1["Rider"] <--> B1["Driver"]
+        A1 <--> C1["Pricing"]
+        A1 <--> D1["Dispatch"]
+        B1 <--> C1
+        B1 <--> D1
+        C1 <--> D1
+    end
+    subgraph mediated["Through a mediator - one edge each"]
+        A2["Rider"] --> M["RideMatchingMediator"]
+        B2["Driver"] --> M
+        C2["Pricing"] --> M
+        D2["Dispatch"] --> M
+    end
+```
+
+Four colleagues already need six edges on the left and four on the right. At ten colleagues it is 45
+versus 10, and adding an eleventh touches ten existing classes on the left and none on the right.
 
 **What the mediator legitimately does.** Route messages, transform them, enforce policy (bans,
 permissions, rate limits), maintain the roster, and sequence multi-party interactions. Because all
@@ -448,6 +693,32 @@ object.
 That opacity is the whole point of the pattern; if the caretaker can read the memento's fields, you've
 just leaked the originator's internals with extra steps.
 
+```mermaid
+classDiagram
+    direction LR
+    class Editor {
+        <<originator>>
+        -String content
+        -int cursor
+        +save() Snapshot
+        +restore(Snapshot)
+    }
+    class Snapshot {
+        <<opaque>>
+        -String content
+        -int cursor
+    }
+    class History {
+        <<caretaker>>
+        -Deque~Snapshot~ stack
+        +push(Snapshot)
+        +pop() Snapshot
+    }
+    Editor ..> Snapshot : creates and is the only reader
+    History o-- Snapshot : stores, cannot read
+    note for History "holds the snapshots without ever seeing inside them"
+```
+
 **Design considerations.**
 - **Memory cost.** Full snapshots of a large object are expensive. Mitigate with incremental mementos
   (store the diff), snapshot intervals, or compression. Bound the history.
@@ -503,6 +774,22 @@ wrong. So you dispatch twice: `element.accept(visitor)` resolves the element's r
 that method `visitor.visit(this)` resolves the visitor's real type with `this` now statically typed
 correctly. Being able to explain this cleanly is the whole point of the question.
 
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant E as Electronics
+    participant V as TaxVisitor
+    C->>E: accept(visitor)
+    Note over E: dispatch 1 - the element's<br/>runtime type is now known
+    E->>V: visit(this)
+    Note over V: dispatch 2 - picks visit(Electronics)<br/>because this is statically Electronics
+    V-->>E: price x 0.18
+    E-->>C: tax
+```
+
+One call would not be enough: `visitor.visit(element)` alone picks the overload from the element's
+*static* type, which is `CartItem` — the wrong one.
+
 **The trade-off — state it immediately.**
 - ✅ Adding a new **operation** = one new visitor class, zero changes to elements.
 - ❌ Adding a new **element type** = every existing visitor must be updated (and won't compile until
@@ -557,6 +844,20 @@ them means a release for every rule change.
 **Structure.** An *AbstractExpression* with `interpret(context)`; *TerminalExpressions* (literals,
 variables); *NonterminalExpressions* (and/or/not, +, ×) that hold child expressions and recurse; a
 *Context* carrying the variable bindings. The result is a tree; interpretation is a post-order walk.
+
+```mermaid
+flowchart TD
+    AND["AND<br/><i>nonterminal</i>"] --> GT["greaterThan<br/><i>nonterminal</i>"]
+    AND --> EQ["equals<br/><i>nonterminal</i>"]
+    GT --> V1["price<br/><i>variable</i>"]
+    GT --> L1["100<br/><i>literal</i>"]
+    EQ --> V2["category<br/><i>variable</i>"]
+    EQ --> L2["books<br/><i>literal</i>"]
+```
+
+That is the tree for `price > 100 AND category = books`. Each node is one class, each leaf reads from
+the context, and `interpret` recurses bottom-up — which is also why the class count explodes on any
+grammar bigger than this one.
 
 **The honest framing.** Interpreter is really "Composite applied to a grammar." Each grammar rule
 becomes a class, so the pattern only scales to **small, stable grammars** — a class per rule gets

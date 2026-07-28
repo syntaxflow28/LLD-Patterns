@@ -20,6 +20,30 @@ rewrite.
 **Structure.** *Target* (the interface your code wants), *Adaptee* (the incompatible existing class),
 *Adapter* (implements Target, holds an Adaptee, translates calls).
 
+```mermaid
+classDiagram
+    direction LR
+    class OrderService {
+        never sees Stripe
+    }
+    class PaymentGateway {
+        <<interface>>
+        +charge(Money) Receipt
+    }
+    class StripeAdapter {
+        -StripeClient stripe
+        +charge(Money) Receipt
+    }
+    class StripeClient {
+        <<third party>>
+        +makePayment(currency, cents, ref)
+    }
+    OrderService --> PaymentGateway
+    PaymentGateway <|.. StripeAdapter
+    StripeAdapter o-- StripeClient
+    note for StripeAdapter "the only place that knows both vocabularies"
+```
+
 **Two forms.**
 - **Object adapter** (preferred): the adapter *holds* the adaptee via composition. Works with any
   adaptee, can adapt subclasses, and Java's single inheritance doesn't get in the way.
@@ -63,6 +87,45 @@ one more. Decorators compose at runtime: 5 classes cover all 32 combinations.
 **Structure.** A *Component* interface; a *ConcreteComponent* (the base object); an abstract
 *Decorator* that implements Component and holds a Component; *ConcreteDecorators* that override
 methods, call `inner.method()`, and add their own behaviour.
+
+```mermaid
+classDiagram
+    direction LR
+    class Beverage {
+        <<interface>>
+        +cost() Money
+        +description() String
+    }
+    class Coffee
+    class AddOn {
+        <<abstract>>
+        -Beverage inner
+    }
+    class Milk
+    class Sugar
+    class Whip
+    Beverage <|.. Coffee
+    Beverage <|.. AddOn
+    AddOn <|-- Milk
+    AddOn <|-- Sugar
+    AddOn <|-- Whip
+    AddOn o-- Beverage : wraps
+```
+
+The recursion is the point — each decorator *is-a* Beverage **and** *has-a* Beverage, so a chain of
+any depth still answers a single `cost()` call:
+
+```mermaid
+flowchart LR
+    C["client calls cost()"] --> M["Whip<br/>inner.cost + 0.70"]
+    M --> S["Sugar<br/>inner.cost + 0.25"]
+    S --> K["Milk<br/>inner.cost + 0.50"]
+    K --> B["Coffee<br/>2.00"]
+    B -.->|"2.00"| K
+    K -.->|"2.50"| S
+    S -.->|"2.75"| M
+    M -.->|"3.45"| C
+```
 
 **The mechanism.** Every decorator *is-a* Component *and* *has-a* Component. That's why they nest
 arbitrarily deep and why the client can't tell a decorated object from a plain one.
@@ -108,6 +171,35 @@ that orchestration, and they drift apart.
 **Structure.** One facade class holding references to subsystem objects, exposing coarse-grained
 operations (`placeOrder(...)`) that encapsulate the sequencing.
 
+```mermaid
+flowchart TB
+    subgraph callers["Callers"]
+        W["Web controller"]
+        M["Mobile API"]
+        B["Batch job"]
+    end
+    F["OrderService facade<br/>placeOrder"]
+    subgraph subsystems["Subsystems"]
+        I["Inventory"]
+        P["Pricing"]
+        PAY["Payment"]
+        SH["Shipping"]
+        N["Notification"]
+    end
+    W --> F
+    M --> F
+    B --> F
+    F --> I
+    F --> P
+    F --> PAY
+    F --> SH
+    F --> N
+    B -.->|"still legal, just unusual"| I
+```
+
+The dashed edge matters: a facade **simplifies** access without **forbidding** it. That is precisely
+what separates it from a strict layer boundary.
+
 **Important nuances.**
 - A facade **does not forbid** direct subsystem access. Power users can still bypass it — that's by
   design, unlike a strict layer boundary.
@@ -149,6 +241,40 @@ treat individual objects and compositions of objects uniformly.
 
 **Structure.** A *Component* interface with the shared operations; *Leaf* implementations with no
 children; *Composite* implementations holding `List<Component>` and delegating operations to children.
+
+```mermaid
+classDiagram
+    class FileSystemNode {
+        <<interface>>
+        +size() long
+        +accept(Visitor)
+    }
+    class FileNode {
+        -long bytes
+        +size() long
+    }
+    class Directory {
+        -List~FileSystemNode~ children
+        +size() long
+        +add(FileSystemNode)
+    }
+    FileSystemNode <|.. FileNode
+    FileSystemNode <|.. Directory
+    Directory o-- FileSystemNode : children
+    note for Directory "size sums children recursively, so the client never type-checks"
+```
+
+The self-referencing edge from `Directory` back to `FileSystemNode` is what makes the tree arbitrarily
+deep while the client still calls one polymorphic method:
+
+```mermaid
+flowchart TD
+    R["/ project<br/>Directory"] --> S["src<br/>Directory"]
+    R --> RM["readme.md<br/>FileNode 120 b"]
+    S --> A["App.java<br/>FileNode 400 b"]
+    S --> U["util<br/>Directory"]
+    U --> H["Http.java<br/>FileNode 250 b"]
+```
 
 **The classic design debate — where do `add()`/`remove()` go?**
 - **On the Component** (GoF's "transparency"): uniform interface, but `File.add()` is meaningless and
@@ -204,6 +330,45 @@ decorator *adds behaviour* and is composed by the client, which supplies the wra
 *controls access* and typically owns/creates the real subject, and may decide **not to call it at all**
 (cache hit, permission denied). "Same shape, different intent" is the correct answer.
 
+```mermaid
+classDiagram
+    direction LR
+    class PricingService {
+        <<interface>>
+        +price(Sku) Money
+    }
+    class RealPricingService {
+        hits the network
+    }
+    class CachingProxy {
+        -PricingService real
+        -Map cache
+    }
+    class Client
+    Client --> PricingService
+    PricingService <|.. RealPricingService
+    PricingService <|.. CachingProxy
+    CachingProxy o-- PricingService : may skip entirely
+```
+
+That last edge label is the whole distinction. A decorator always delegates; a proxy is allowed to
+answer on its own:
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant P as CachingProxy
+    participant R as RealPricingService
+    C->>P: price(sku)
+    P->>R: price(sku)
+    R-->>P: 12.00
+    P-->>C: 12.00
+    Note over P: stores 12.00
+    C->>P: price(sku)
+    P-->>C: 12.00
+    Note over P,R: real service never invoked
+```
+
 **In the wild:** `java.lang.reflect.Proxy` (dynamic proxies), Spring AOP (`@Transactional`, `@Cacheable`
 are proxy-based), Hibernate lazy-loading proxies, RMI stubs, `Collections.unmodifiableX` (arguably a
 protection proxy).
@@ -239,6 +404,51 @@ names start reading like `UrgentEmailNotification`, you need a bridge.
 **Structure.** *Abstraction* (holds a reference to Implementor, exposes high-level ops),
 *RefinedAbstraction* (subclasses varying the first dimension), *Implementor* interface,
 *ConcreteImplementors* (the second dimension).
+
+```mermaid
+classDiagram
+    direction LR
+    class Notification {
+        <<abstract>>
+        -Channel channel
+        +send(Recipient)
+    }
+    class OtpNotification
+    class ShipmentNotification
+    class AlertNotification
+    class Channel {
+        <<interface>>
+        +deliver(String, Recipient)
+    }
+    class EmailChannel
+    class SmsChannel
+    class PushChannel
+    Notification <|-- OtpNotification
+    Notification <|-- ShipmentNotification
+    Notification <|-- AlertNotification
+    Channel <|.. EmailChannel
+    Channel <|.. SmsChannel
+    Channel <|.. PushChannel
+    Notification o-- Channel : the bridge
+```
+
+One edge — the `o--` — is doing all the work. Without it the two hierarchies multiply instead of adding:
+
+```mermaid
+flowchart LR
+    subgraph naive["Inheritance: M x N = 9 classes, 12 after one more channel"]
+        A1["OtpEmailNotification"]
+        A2["OtpSmsNotification"]
+        A3["OtpPushNotification"]
+        A4["ShipmentEmailNotification"]
+        A5["...and 5 more"]
+    end
+    subgraph bridged["Bridge: M + N = 6 classes, 7 after one more channel"]
+        B1["3 notification types"]
+        B2["3 channels"]
+        B1 --- B2
+    end
+```
 
 **Bridge vs Strategy — genuinely confusing, here's the line.** Structurally near-identical (both
 delegate to an injected interface). Strategy swaps **one algorithm** and is usually changed at
@@ -286,6 +496,40 @@ interview answer.
 **Structure.** A *Flyweight* class holding only intrinsic state; a *FlyweightFactory* with a cache
 (`Map<key, Flyweight>`) that guarantees sharing; *Context* objects holding extrinsic state plus a
 flyweight reference.
+
+```mermaid
+classDiagram
+    direction LR
+    class PinType {
+        <<immutable>>
+        -Icon icon
+        -Colour colour
+        +draw(lat, lon)
+    }
+    class PinTypeFactory {
+        -Map cache
+        +of(String) PinType
+    }
+    class MapPin {
+        -double lat
+        -double lon
+        -PinType type
+    }
+    PinTypeFactory o-- PinType : one per distinct value
+    MapPin --> PinType : shared reference
+    note for PinType "intrinsic state only. Extrinsic state arrives as parameters"
+```
+
+100k pins, but only a dozen `PinType` objects exist — every `MapPin` points at a shared one:
+
+```mermaid
+flowchart LR
+    P1["MapPin<br/>12.97, 77.59"] --> F1["PinType<br/>restaurant"]
+    P2["MapPin<br/>12.93, 77.61"] --> F1
+    P3["MapPin<br/>12.91, 77.64"] --> F1
+    P4["MapPin<br/>13.01, 77.57"] --> F2["PinType<br/>fuel"]
+    P5["MapPin<br/>12.99, 77.60"] --> F2
+```
 
 **Non-negotiable constraint.** Flyweights **must be immutable**. They're shared across thousands of
 contexts and usually across threads; one mutable field is a correctness disaster.

@@ -37,6 +37,22 @@ class InvoiceRepository { void save(Invoice i) { } }
 class InvoicePrinter { String toPdf(Invoice i) { return ""; } }
 ```
 
+```mermaid
+flowchart LR
+    subgraph before["Before - three roles, one file"]
+        A1["Accounting"] --> I1["Invoice<br/>total + saveToDb + toPdf"]
+        D1["DBA"] --> I1
+        G1["Design"] --> I1
+    end
+    subgraph after["After - one role, one class"]
+        A2["Accounting"] --> C1["Invoice"]
+        D2["DBA"] --> C2["InvoiceRepository"]
+        G2["Design"] --> C3["InvoicePrinter"]
+    end
+```
+
+Count the arrows landing on each box — that count *is* the number of reasons to change.
+
 **The nuance most people miss.** "One responsibility" is vague and leads to arguments. Uncle Bob's
 sharper formulation is: **a class should have one reason to change, where a "reason" is a person or
 role that requests the change.** `Invoice` above changes when *accounting* changes the total formula,
@@ -84,6 +100,22 @@ class Square implements Shape { double side; public double area() { return side 
 **Why "closed" matters.** Code you don't modify is code you don't re-test and can't regress. OCP isn't
 about aesthetics — it's about limiting the blast radius of a change. That's the business case, and
 it's what to say when asked "why does that matter?"
+
+```mermaid
+flowchart TB
+    subgraph editBox["Before - a new shape edits shared code"]
+        N1["add Triangle"] -.->|"edit this method"| M1["area(Object)<br/>if Circle ... else if Square ..."]
+        M1 --> R1["Circle and Square must be re-tested"]
+    end
+    subgraph closedBox["After - a new shape adds a file"]
+        C1["Circle"] -.-> S["Shape"]
+        Sq["Square"] -.-> S
+        T["Triangle - brand new class"] -.-> S
+        S --> R2["existing classes untouched,<br/>so they cannot regress"]
+    end
+```
+
+The left box's blast radius grows with every shape ever added; the right box's stays at one file.
 
 **The nuance most people miss.** You **cannot** be open to every axis of change, and trying to is
 over-engineering. OCP is about predicting the *one or two* axes that will actually vary and making
@@ -141,6 +173,18 @@ reasonably assume `setWidth(5); setHeight(4);` yields area 20. `Square` must bre
 The subtype is mathematically an is-a but behaviourally not substitutable — which proves that
 "is-a" in English is not the test. Substitutability is.
 
+```mermaid
+flowchart TD
+    C["client holding a Rectangle reference"] --> W["setWidth(5)"]
+    W --> H["setHeight(4)"]
+    H --> A{"area()"}
+    A -- "actual type Rectangle" --> OK["20 - the contract held"]
+    A -- "actual type Square" --> BAD["16 - setHeight silently<br/>changed the width too"]
+```
+
+The client wrote correct code against `Rectangle` and got the wrong answer. Nothing in the compiler
+could have warned it, which is precisely why LSP is a *behavioural* rule.
+
 **How to detect a violation fast.**
 - Overrides that throw `UnsupportedOperationException` or silently no-op.
 - Callers doing `if (x instanceof SubType)` to work around a subtype's quirks.
@@ -173,6 +217,41 @@ interface Workable { void work(); }
 interface Eatable { void eat(); }
 class Human implements Workable, Eatable { public void work() { } public void eat() { } }
 class Robot implements Workable { public void work() { } }
+```
+
+```mermaid
+classDiagram
+    direction LR
+    class Worker {
+        <<fat interface>>
+        +work()
+        +eat()
+    }
+    class Human
+    class Robot
+    Worker <|.. Human
+    Worker <|.. Robot
+    note for Robot "forced to stub eat - an ISP violation that is automatically an LSP violation too"
+```
+
+Split by *role* and the stub disappears, because nothing implements a method it cannot honour:
+
+```mermaid
+classDiagram
+    direction LR
+    class Workable {
+        <<interface>>
+        +work()
+    }
+    class Eatable {
+        <<interface>>
+        +eat()
+    }
+    class Human
+    class Robot
+    Workable <|.. Human
+    Eatable <|.. Human
+    Workable <|.. Robot
 ```
 
 **Why it's not just tidiness.** A dependency on a method you never call is still a dependency: when
@@ -233,6 +312,20 @@ explaining it this way is a strong differentiator.
 
 > Rule of thumb: the interface belongs in the package of the **client** that needs it, not the package
 > of the class that implements it.
+
+```mermaid
+flowchart TB
+    subgraph naive["Naive layering - policy depends on detail"]
+        S1["OrderService<br/><i>high-level policy</i>"] --> D1["MySqlDatabase<br/><i>low-level detail</i>"]
+    end
+    subgraph inverted["DIP - the abstraction is owned by the high-level module"]
+        S2["OrderService"] --> I2["Database<br/><i>interface, in the domain package</i>"]
+        D2["MySqlDatabase<br/><i>infrastructure package</i>"] -.->|"implements"| I2
+    end
+```
+
+Both boxes "use an interface." Only the lower one *inverts* anything — look at which way the arrow
+between the two packages runs. That reversal is the whole principle.
 
 **DIP vs DI vs IoC — three different things.**
 | Term | What it is |

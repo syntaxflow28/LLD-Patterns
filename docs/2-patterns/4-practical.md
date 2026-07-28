@@ -21,6 +21,24 @@ DynamoDB means rewriting the service.
 `deleteById`) and one or more implementations (JDBC, JPA, in-memory). Services depend on the
 interface only — that's Dependency Inversion in its most common real-world form.
 
+```mermaid
+flowchart TB
+    subgraph domain["Domain / application layer"]
+        S["OrderService"]
+        I["OrderRepository<br/><i>interface, domain vocabulary</i>"]
+    end
+    subgraph infra["Infrastructure layer"]
+        J["JdbcOrderRepository"]
+        M["InMemoryOrderRepository"]
+    end
+    S --> I
+    J -.->|"implements"| I
+    M -.->|"implements"| I
+```
+
+Note the direction of every arrow: nothing in the domain box points down. The interface lives with
+the code that *uses* it, so JDBC can be deleted without the service noticing.
+
 **Design decisions worth voicing.**
 - **One repository per aggregate root**, not per table. `OrderRepository` handles `Order` *and* its
   `OrderLine`s, because you never load an order line on its own. This is the single most common
@@ -85,6 +103,21 @@ these three right is a nice senior-level distinction.
 configuration — that knows about concrete classes and wires the object graph. Everything else deals in
 interfaces. Showing an explicit composition root in an LLD answer is a strong signal.
 
+```mermaid
+flowchart TB
+    MAIN["main() - the composition root<br/>the only place that says <b>new</b>"]
+    MAIN -->|"constructs"| SS["SmtpSender"]
+    MAIN -->|"constructs"| AL["FileAuditLog"]
+    MAIN -->|"injects both into"| ON["OrderNotifier"]
+    ON --> I1["MessageSender<br/><i>interface</i>"]
+    ON --> I2["AuditLog<br/><i>interface</i>"]
+    SS -.->|"implements"| I1
+    AL -.->|"implements"| I2
+```
+
+In a test, the same picture holds with `FakeSender` in place of `SmtpSender` — and `OrderNotifier` is
+unchanged, because it never had an edge to a concrete class in the first place.
+
 **Why interviewers care.** DI is the difference between "I'd write unit tests" and code that is
 *actually* testable. Injecting a fake or stub with no mocking framework demonstrates it concretely.
 
@@ -117,6 +150,23 @@ concrete classes. In tests I pass a fake sender and assert on it — no mocking 
 
 **Structure.** The same interface, implemented by a class whose methods do nothing (or return a
 neutral value: empty list, zero, `false`). Factories return it instead of `null`.
+
+```mermaid
+classDiagram
+    direction LR
+    class Logger {
+        <<interface>>
+        +info(String)
+        +error(String, Throwable)
+    }
+    class FileLogger
+    class NoOpLogger {
+        <<singleton>>
+    }
+    Logger <|.. FileLogger
+    Logger <|.. NoOpLogger
+    note for NoOpLogger "every method body is empty - returned instead of null so no call site needs a null check"
+```
 
 **When it's right vs wrong.**
 - ✅ Right when "do nothing" is a **legitimate, expected behaviour** — a disabled logger, a guest user
@@ -167,6 +217,46 @@ copy-pasted into three other places where it slowly diverges.
 (Java `default` methods make this free). Each rule is a small named class you can unit-test alone, and
 complex rules are composed at runtime — even from configuration.
 
+The combinators are Composite in disguise — `and`/`or`/`not` are themselves specifications holding
+other specifications, so an arbitrarily deep rule is still just a `Specification`:
+
+```mermaid
+classDiagram
+    direction LR
+    class Specification {
+        <<interface>>
+        +isSatisfiedBy(T) boolean
+        +and(Specification) Specification
+        +or(Specification) Specification
+        +not() Specification
+    }
+    class InCategorySpec
+    class PriceUnderSpec
+    class InStockSpec
+    class AndSpec
+    class NotSpec
+    Specification <|.. InCategorySpec
+    Specification <|.. PriceUnderSpec
+    Specification <|.. InStockSpec
+    Specification <|.. AndSpec
+    Specification <|.. NotSpec
+    AndSpec o-- Specification : left and right
+    NotSpec o-- Specification : wrapped
+```
+
+That five-clause `if` from above becomes a named tree, and every leaf is independently unit-testable:
+
+```mermaid
+flowchart TD
+    A1["AndSpec"] --> A2["AndSpec"]
+    A1 --> N1["NotSpec"]
+    A2 --> A3["AndSpec"]
+    A2 --> L3["InStockSpec"]
+    A3 --> L1["InCategorySpec<br/>electronics"]
+    A3 --> L2["PriceUnderSpec<br/>500"]
+    N1 --> L4["DiscontinuedSpec"]
+```
+
 **Why it's more than a `Predicate`.** A `Predicate<T>` is the mechanism; a Specification is a *named
 domain concept* (`PremiumCustomerSpec`, `EligibleForFreeShippingSpec`). The name is the value — it
 turns an anonymous boolean into vocabulary the business can review. Expose `toPredicate()` so it still
@@ -211,6 +301,20 @@ producer hand off and move on — and, crucially, **bounds** how far ahead it ca
 into an out-of-memory crash: if producers outpace consumers, the queue grows until the JVM dies. A
 bounded queue applies **back-pressure** — producers block, which propagates the slowdown upstream
 where it can be handled. Saying "bounded, for back-pressure" is a strong senior signal.
+
+```mermaid
+flowchart LR
+    P1["producer 1"] --> Q
+    P2["producer 2"] --> Q
+    P3["producer 3"] --> Q
+    Q["bounded queue<br/>capacity 1000"] --> C1["consumer 1"]
+    Q --> C2["consumer 2"]
+    Q -. "full - producers block, slowdown propagates upstream" .-> P1
+    Q -. "empty - consumers wait" .-> C1
+```
+
+The two dashed edges are the whole pattern. Remove the capacity and the top one disappears — along
+with it, the only thing standing between a slow disk and an `OutOfMemoryError`.
 
 **The concurrency details interviewers probe.**
 - **`while`, not `if`, around `wait()`.** Threads wake spuriously, and between `notifyAll()` and
@@ -266,6 +370,23 @@ succeed.
 **Structure.** Three collections — `newObjects`, `dirtyObjects`, `removedObjects` — plus
 `registerNew` / `registerDirty` / `registerRemoved` and a single `commit()` that flushes them inside
 one transaction. Repositories register with the Unit of Work instead of writing directly.
+
+```mermaid
+flowchart LR
+    subgraph tracked["During the request - nothing is written yet"]
+        N["newObjects"]
+        D["dirtyObjects"]
+        R["removedObjects"]
+    end
+    N --> C["commit()"]
+    D --> C
+    R --> C
+    C --> T["one transaction<br/>INSERTs, then UPDATEs, then DELETEs"]
+    C -.->|"rollback = discard all three lists"| X["nothing was sent,<br/>so nothing needs undoing"]
+```
+
+The ordering in that final box is deliberate, not registration order — deleting first can break a
+foreign key a pending insert was about to satisfy.
 
 **Design decisions worth voicing.**
 - **Deferring the writes is what buys you everything else.** Because nothing has been sent, the Unit
@@ -329,6 +450,27 @@ answer sound experienced.
 | **OPEN** | Calls rejected instantly, dependency never touched | Cooldown elapses → HALF_OPEN |
 | **HALF_OPEN** | *One* trial call allowed | Success → CLOSED (after N probes) · Failure → OPEN |
 
+```mermaid
+stateDiagram-v2
+    [*] --> CLOSED
+    CLOSED --> CLOSED: success resets the counter
+    CLOSED --> OPEN: failure threshold reached
+    OPEN --> HALF_OPEN: cooldown elapsed
+    HALF_OPEN --> CLOSED: probe succeeds
+    HALF_OPEN --> OPEN: probe fails
+    note right of OPEN
+        rejected in microseconds
+        the dependency is never touched
+    end note
+    note right of HALF_OPEN
+        exactly one trial call
+        asks permission before resuming traffic
+    end note
+```
+
+The arrow candidates omit is `HALF_OPEN --> OPEN`. Without it a recovering service gets full
+production load thrown at it the instant the cooldown expires.
+
 **Design decisions worth voicing.**
 - **HALF_OPEN is the state candidates forget, and it is the important one.** Without it you go
   straight from OPEN back to full production traffic and knock over a service that has been down for
@@ -389,6 +531,25 @@ clients on flaky networks — forces this on you.
 it with every attempt. The server stores key → response on first execution and, on seeing the key
 again, replays the stored response without re-running anything.
 
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    participant P as Payment gateway
+    C->>S: POST charge, key abc123
+    S->>P: charge the card
+    P-->>S: success
+    S->>S: store abc123 with the response
+    S--xC: reply lost in the network
+    C->>S: POST charge, key abc123 (retry)
+    S->>S: key already present
+    S-->>C: replay the stored response
+    Note over P: never called a second time
+```
+
+The client cannot tell the lost reply from a request that never arrived — so the server, not the
+client, is where the problem has to be solved.
+
 **Design decisions worth voicing.** Four details separate a real answer from a hand-wave:
 - **Never cache failures.** Storing an error permanently poisons the key and the client can never
   succeed no matter how many times they retry. (In Java, doing the work inside
@@ -447,6 +608,21 @@ without mocking all four; and the analytics service being down means the custome
 **Structure.** An immutable event (a `record` — `OrderPlaced(orderId, customerId, total, occurredAt)`),
 a bus mapping event type → subscribers, and handlers registered at startup. The aggregate *records*
 events; something else *publishes* them.
+
+```mermaid
+flowchart TB
+    A["Order.place()<br/>records OrderPlaced on the aggregate"] --> T{"transaction"}
+    T -- "commits" --> DR["releaseEvents() drains and clears"]
+    T -- "rolls back" --> X["events discarded<br/>no email for an order that does not exist"]
+    DR --> B["event bus"]
+    B --> H1["EmailHandler"]
+    B --> H2["InventoryHandler"]
+    B --> H3["AnalyticsHandler"]
+```
+
+The commit gate is the part that is easy to get wrong. Publish above it and a rollback has already
+sent the email; each handler also sits behind its own try/catch so a dead analytics endpoint cannot
+reach back and fail the order.
 
 **Design decisions worth voicing.**
 - **Record in the aggregate, publish after the commit.** This is the detail that separates a correct
@@ -514,6 +690,41 @@ short-circuiting on the first error) and `fold` (finally handle both branches). 
 `sealed interface` with two `record`s, and the sealing is what lets the compiler prove you've handled
 every case.
 
+```mermaid
+classDiagram
+    direction LR
+    class Result {
+        <<sealed interface>>
+        +map(fn) Result
+        +flatMap(fn) Result
+        +fold(onOk, onErr) R
+    }
+    class Ok {
+        <<record>>
+        +T value
+    }
+    class Err {
+        <<record>>
+        +E error
+    }
+    Result <|.. Ok
+    Result <|.. Err
+```
+
+Chaining is where it pays off — the first failure routes straight to `fold` and every later step is
+skipped, with no try/catch and no null checks in between:
+
+```mermaid
+flowchart LR
+    S["raw input"] --> P1["parseEmail"]
+    P1 -- "Ok" --> P2["parseAge"]
+    P2 -- "Ok" --> P3["parseCountry"]
+    P3 -- "Ok" --> F["fold"]
+    P1 -. "Err" .-> F
+    P2 -. "Err" .-> F
+    P3 -. "Err" .-> F
+```
+
 **Design decisions worth voicing.**
 - **The value is never unwrapped until `fold()`.** There is no window in which you can use the result
   without having handled the error — that's the entire safety argument, and it's stronger than
@@ -571,6 +782,26 @@ are listening for.
 **Structure.** An interface whose implementations declare their own key (`String format()`), a
 registry holding `Map<String, Impl>` with `register` / `lookup` / `supportedKeys`, and one composition
 root that registers everything at startup. The consuming service does a lookup and nothing else.
+
+```mermaid
+flowchart LR
+    M["Map: key to Exporter"]
+    subgraph startup["Startup - one composition root"]
+        R1["CsvExporter declares csv"]
+        R2["JsonExporter declares json"]
+        R3["XmlExporter declares xml"]
+    end
+    R1 --> M
+    R2 --> M
+    R3 --> M
+    REQ["request: format=json"] --> L["registry.lookup(format)"]
+    L --> M
+    M --> O["Optional of JsonExporter"]
+    M -.->|"unknown key"| U["Optional.empty<br/>caller decides if that is fatal"]
+```
+
+Adding a fourth format adds a node to the startup box and touches nothing else — which is exactly what
+the `switch` could not do.
 
 **Design decisions worth voicing.**
 - **Duplicate registration policy is a real decision, not a detail.** Reject (two plugins claiming
