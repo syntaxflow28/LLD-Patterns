@@ -3,7 +3,7 @@
 Detailed reference for the 7 structural patterns: how objects and classes are composed into larger
 structures while keeping those structures flexible.
 
-Code: [`src/patterns/structural`](../../src/patterns/structural)
+Code: [`src/com/lld/patterns/structural`](../../src/com/lld/patterns/structural)
 
 ---
 

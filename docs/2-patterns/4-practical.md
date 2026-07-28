@@ -4,7 +4,7 @@ Not in the GoF book, but these come up constantly in SDE-2 / senior LLD rounds �
 follow-up questions ("where does the database fit?", "how would you test this?", "how do you handle
 concurrency?"). Knowing them separates a candidate who can name patterns from one who can build systems.
 
-Code: [`src/patterns/practical`](../../src/patterns/practical)
+Code: [`src/com/lld/patterns/practical`](../../src/com/lld/patterns/practical)
 
 ---
 
@@ -305,7 +305,7 @@ state."*
 - *"Does it work across microservices?"* → No. One database, one transaction. Across services you
   need a Saga with compensating actions.
 
-> **Runnable demo:** [`src/patterns/practical/unitofwork/`](../../src/patterns/practical/unitofwork/UnitOfWorkDemo.java)
+> **Runnable demo:** [`src/com/lld/patterns/practical/unitofwork/`](../../src/com/lld/patterns/practical/unitofwork/UnitOfWorkDemo.java)
 
 ---
 
@@ -371,7 +371,7 @@ it closes, if not it re-opens immediately. While open, callers get a fallback ra
 - *"What counts as a failure?"* → Timeouts and 5xx, yes. A 400 is *your* bug, not the dependency's,
   and tripping on it hides the real problem.
 
-> **Runnable demo:** [`src/patterns/practical/circuitbreaker/`](../../src/patterns/practical/circuitbreaker/CircuitBreakerDemo.java)
+> **Runnable demo:** [`src/com/lld/patterns/practical/circuitbreaker/`](../../src/com/lld/patterns/practical/circuitbreaker/CircuitBreakerDemo.java)
 
 ---
 
@@ -430,7 +430,7 @@ arrives with a different body, because that's a client bug, not a retry."*
 - *"What about the third-party gateway?"* → Forward your key to it. Every serious payment API accepts
   one, which extends the guarantee past your own boundary.
 
-> **Runnable demo:** [`src/patterns/practical/idempotency/`](../../src/patterns/practical/idempotency/IdempotencyDemo.java)
+> **Runnable demo:** [`src/com/lld/patterns/practical/idempotency/`](../../src/com/lld/patterns/practical/idempotency/IdempotencyDemo.java)
 
 ---
 
@@ -493,7 +493,7 @@ can't fail the order. Adding a fraud check later is a new subscriber and zero ed
 - *"How is this different from Observer?"* → Observer couples a subject to its listeners; a domain
   event is a typed fact on a bus, so publisher and subscriber never know each other exists.
 
-> **Runnable demo:** [`src/patterns/practical/domainevents/`](../../src/patterns/practical/domainevents/DomainEventsDemo.java)
+> **Runnable demo:** [`src/com/lld/patterns/practical/domainevents/`](../../src/com/lld/patterns/practical/domainevents/DomainEventsDemo.java)
 
 ---
 
@@ -554,7 +554,7 @@ failures — things the business logic isn't supposed to expect."*
 - *"Doesn't this get verbose?"* → Yes, in Java it does. That's the trade: verbosity at the call site
   in exchange for failures that can't be silently skipped.
 
-> **Runnable demo:** [`src/patterns/practical/result/`](../../src/patterns/practical/result/ResultDemo.java)
+> **Runnable demo:** [`src/com/lld/patterns/practical/result/`](../../src/com/lld/patterns/practical/result/ResultDemo.java)
 
 ---
 
@@ -617,7 +617,7 @@ is a bug you only find in production."*
 - *"Two plugins register the same key."* → Startup failure by default. Overriding should be an
   explicit, opt-in flag.
 
-> **Runnable demo:** [`src/patterns/practical/registry/`](../../src/patterns/practical/registry/PluginRegistryDemo.java)
+> **Runnable demo:** [`src/com/lld/patterns/practical/registry/`](../../src/com/lld/patterns/practical/registry/PluginRegistryDemo.java)
 
 ---
 
