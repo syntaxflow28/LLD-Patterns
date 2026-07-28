@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Modelling intuition, reproduced rather than described.
  *
- * <p>Companion to <a href="../../../../../../docs/foundations/MODELLING.md">docs/foundations/MODELLING.md</a>.
+ * <p>Companion to <a href="../../../../../docs/1-foundations/2-modelling.md">docs/1-foundations/2-modelling.md</a>.
  * Each section breaks a modelling rule and shows the failure actually happening, then shows the model
  * that makes the failure impossible instead of merely detected.
  */

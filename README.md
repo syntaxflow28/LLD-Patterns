@@ -7,11 +7,11 @@ Covers all **23 GoF patterns** plus the **practical patterns** senior interviews
 
 ## How to use this repo
 
-1. Start with the **[Interview Approach](docs/foundations/APPROACH.md)** — a repeatable framework to drive any LLD round.
-2. Build **[modelling intuition](docs/foundations/MODELLING.md)** — how to decide what becomes a class, an interface, or just a field. This is the skill patterns sit on top of.
-3. Internalize the **[SOLID Principles](docs/foundations/SOLID.md)** — interviewers grade you on these, not on trivia.
+1. Start with the **[Interview Approach](docs/1-foundations/1-approach.md)** — a repeatable framework to drive any LLD round.
+2. Build **[modelling intuition](docs/1-foundations/2-modelling.md)** — how to decide what becomes a class, an interface, or just a field. This is the skill patterns sit on top of.
+3. Internalize the **[SOLID Principles](docs/1-foundations/3-solid.md)** — interviewers grade you on these, not on trivia.
 4. Learn the **patterns** below. For each, know: *the problem it solves*, *when to use it*, and *one real LLD example*.
-5. Use the **[Pattern Cheat Sheet](docs/reference/CHEATSHEET.md)** to pick the right tool under pressure.
+5. Use the **[Pattern Cheat Sheet](docs/3-reference/1-cheatsheet.md)** to pick the right tool under pressure.
 6. Go deep with the per-category references when a pattern doesn't click yet.
 7. Finish on the **[worked problems](#worked-end-to-end-problems)** — full implementations of real interview questions where several patterns have to cooperate.
 
@@ -21,74 +21,97 @@ All docs live under [`docs/`](docs), grouped by how you use them:
 
 | Doc | What it gives you |
 |---|---|
-| **`foundations/`** | |
-| [APPROACH.md](docs/foundations/APPROACH.md) | The 6-step interview framework, question bank, concurrency playbook, worked Parking Lot example |
-| [MODELLING.md](docs/foundations/MODELLING.md) | **What becomes a class, an interface, or just a field — and why.** Composition vs inheritance, ownership, tell-don't-ask, illegal states. Diagram-heavy, with a smell → move table |
-| [SOLID.md](docs/foundations/SOLID.md) | Each principle with nuance, detection heuristics, and what to say out loud |
-| **`reference/`** | |
-| [CHEATSHEET.md](docs/reference/CHEATSHEET.md) | Fast symptom → pattern lookup, confusing pairs, 26 classic problems |
-| [PROBLEMS.md](docs/reference/PROBLEMS.md) | **Why** each pattern fits each of the 26 classic problems — variation points, rejected alternatives, and the question interviewers always ask |
-| **`patterns/`** | |
-| [CREATIONAL.md](docs/patterns/CREATIONAL.md) | Deep dive: Singleton, Factory, Abstract Factory, Builder, Prototype, Object Pool |
-| [STRUCTURAL.md](docs/patterns/STRUCTURAL.md) | Deep dive: Adapter, Decorator, Facade, Composite, Proxy, Bridge, Flyweight |
-| [BEHAVIORAL.md](docs/patterns/BEHAVIORAL.md) | Deep dive: Strategy, Observer, State, Command, CoR, Template, Iterator, Mediator, Memento, Visitor, Interpreter |
-| [PRACTICAL.md](docs/patterns/PRACTICAL.md) | Deep dive: Repository, DI, Null Object, Specification, Producer–Consumer, Unit of Work, Circuit Breaker, Idempotency, Domain Events, Result, Registry + DTO, CQRS, Saga |
+| **`1-foundations/`** | |
+| [Interview Approach](docs/1-foundations/1-approach.md) | The 6-step interview framework, question bank, concurrency playbook, worked Parking Lot example |
+| [Modelling Intuition](docs/1-foundations/2-modelling.md) | **What becomes a class, an interface, or just a field — and why.** Composition vs inheritance, ownership, tell-don't-ask, illegal states. Diagram-heavy, with a smell → move table |
+| [SOLID Principles](docs/1-foundations/3-solid.md) | Each principle with nuance, detection heuristics, and what to say out loud |
+| **`2-patterns/`** | |
+| [Creational](docs/2-patterns/1-creational.md) | Deep dive: Singleton, Factory, Abstract Factory, Builder, Prototype, Object Pool |
+| [Structural](docs/2-patterns/2-structural.md) | Deep dive: Adapter, Decorator, Facade, Composite, Proxy, Bridge, Flyweight |
+| [Behavioral](docs/2-patterns/3-behavioral.md) | Deep dive: Strategy, Observer, State, Command, CoR, Template, Iterator, Mediator, Memento, Visitor, Interpreter |
+| [Practical](docs/2-patterns/4-practical.md) | Deep dive: Repository, DI, Null Object, Specification, Producer–Consumer, Unit of Work, Circuit Breaker, Idempotency, Domain Events, Result, Registry + DTO, CQRS, Saga |
+| **`3-reference/`** | |
+| [Cheat Sheet](docs/3-reference/1-cheatsheet.md) | Fast symptom → pattern lookup, confusing pairs, 26 classic problems |
+| [Classic Problems](docs/3-reference/2-problems.md) | **Why** each pattern fits each of the 26 classic problems — variation points, rejected alternatives, and the question interviewers always ask |
 
 Each deep-dive entry follows the same structure: **intent → the problem it solves → structure →
 design decisions → real JDK usage → when NOT to use it → interview soundbite → follow-up questions**.
+
+### Repository layout
+
+The docs are numbered in reading order, and `src/` mirrors `docs/` one-to-one.
+
+```
+docs/
+├── 1-foundations/     approach, modelling, SOLID     ← read in this order
+├── 2-patterns/        creational, structural, behavioral, practical
+└── 3-reference/       cheatsheet, classic problems
+
+src/com/lld/
+├── foundations/       runnable companion to the modelling doc
+├── patterns/
+│   ├── creational/    one self-contained *Demo.java per pattern
+│   ├── structural/
+│   ├── behavioral/
+│   └── practical/
+└── problems/          multi-file end-to-end implementations
+```
+
+Each `docs/2-patterns/*.md` deep dive maps to the `src/com/lld/patterns/*` package of the same name,
+and each section of [Classic Problems](docs/3-reference/2-problems.md) maps to a `src/com/lld/problems/*` package.
 
 ## Patterns covered
 
 ### Creational — *how objects get created*
 | Pattern | Solves | Classic LLD use |
 |---|---|---|
-| [Singleton](src/com/lld/creational/singleton/SingletonDemo.java) | One shared instance | Config, logger, connection pool |
-| [Factory Method](src/com/lld/creational/factory/FactoryDemo.java) | Create without naming concrete class | Notification/payment factories |
-| [Abstract Factory](src/com/lld/creational/abstractfactory/AbstractFactoryDemo.java) | Families of related objects | Cross-platform UI kits |
-| [Builder](src/com/lld/creational/builder/BuilderDemo.java) | Complex object, many optional fields | Building a `Pizza`, `HttpRequest` |
-| [Prototype](src/com/lld/creational/prototype/PrototypeDemo.java) | Clone instead of rebuild | Game entities, document templates |
+| [Singleton](src/com/lld/patterns/creational/singleton/SingletonDemo.java) | One shared instance | Config, logger, connection pool |
+| [Factory Method](src/com/lld/patterns/creational/factory/FactoryDemo.java) | Create without naming concrete class | Notification/payment factories |
+| [Abstract Factory](src/com/lld/patterns/creational/abstractfactory/AbstractFactoryDemo.java) | Families of related objects | Cross-platform UI kits |
+| [Builder](src/com/lld/patterns/creational/builder/BuilderDemo.java) | Complex object, many optional fields | Building a `Pizza`, `HttpRequest` |
+| [Prototype](src/com/lld/patterns/creational/prototype/PrototypeDemo.java) | Clone instead of rebuild | Game entities, document templates |
 
 ### Structural — *how objects are composed*
 | Pattern | Solves | Classic LLD use |
 |---|---|---|
-| [Adapter](src/com/lld/structural/adapter/AdapterDemo.java) | Incompatible interfaces | Wrapping 3rd-party SDKs |
-| [Decorator](src/com/lld/structural/decorator/DecoratorDemo.java) | Add behavior at runtime | Coffee add-ons, I/O streams |
-| [Facade](src/com/lld/structural/facade/FacadeDemo.java) | Simplify a subsystem | Order/checkout orchestration |
-| [Composite](src/com/lld/structural/composite/CompositeDemo.java) | Tree of part-whole objects | File system, org chart |
-| [Proxy](src/com/lld/structural/proxy/ProxyDemo.java) | Control access / lazy load | Caching, rate limiting, auth |
-| [Bridge](src/com/lld/structural/bridge/BridgeDemo.java) | Two dimensions varying independently | Shape × Renderer, Alert × Channel |
-| [Flyweight](src/com/lld/structural/flyweight/FlyweightDemo.java) | Share state across many objects | Game tiles, text glyphs, map pins |
+| [Adapter](src/com/lld/patterns/structural/adapter/AdapterDemo.java) | Incompatible interfaces | Wrapping 3rd-party SDKs |
+| [Decorator](src/com/lld/patterns/structural/decorator/DecoratorDemo.java) | Add behavior at runtime | Coffee add-ons, I/O streams |
+| [Facade](src/com/lld/patterns/structural/facade/FacadeDemo.java) | Simplify a subsystem | Order/checkout orchestration |
+| [Composite](src/com/lld/patterns/structural/composite/CompositeDemo.java) | Tree of part-whole objects | File system, org chart |
+| [Proxy](src/com/lld/patterns/structural/proxy/ProxyDemo.java) | Control access / lazy load | Caching, rate limiting, auth |
+| [Bridge](src/com/lld/patterns/structural/bridge/BridgeDemo.java) | Two dimensions varying independently | Shape × Renderer, Alert × Channel |
+| [Flyweight](src/com/lld/patterns/structural/flyweight/FlyweightDemo.java) | Share state across many objects | Game tiles, text glyphs, map pins |
 
 ### Behavioral — *how objects interact*
 | Pattern | Solves | Classic LLD use |
 |---|---|---|
-| [Strategy](src/com/lld/behavioral/strategy/StrategyDemo.java) | Swap algorithms at runtime | Payment/sorting/pricing strategies |
-| [Observer](src/com/lld/behavioral/observer/ObserverDemo.java) | Publish/subscribe | Notifications, stock tickers |
-| [State](src/com/lld/behavioral/state/StateDemo.java) | Behavior changes with state | Vending machine, order lifecycle |
-| [Command](src/com/lld/behavioral/command/CommandDemo.java) | Encapsulate a request | Undo/redo, task queues |
-| [Chain of Responsibility](src/com/lld/behavioral/chainofresponsibility/ChainDemo.java) | Pass request along handlers | Middleware, approval flows |
-| [Template Method](src/com/lld/behavioral/template/TemplateDemo.java) | Fixed skeleton, variable steps | Data pipelines, game turns |
-| [Iterator](src/com/lld/behavioral/iterator/IteratorDemo.java) | Traverse without exposing internals | Custom collections, pagination |
-| [Mediator](src/com/lld/behavioral/mediator/MediatorDemo.java) | Collapse N×N coupling into N×1 | Chat room, air-traffic control |
-| [Memento](src/com/lld/behavioral/memento/MementoDemo.java) | Snapshot & restore state | Undo, checkpoints, save games |
-| [Visitor](src/com/lld/behavioral/visitor/VisitorDemo.java) | New ops over a stable hierarchy | Tax/shipping over a cart, AST passes |
-| [Interpreter](src/com/lld/behavioral/interpreter/InterpreterDemo.java) | Evaluate a small grammar | Rule engines, formula/query eval |
+| [Strategy](src/com/lld/patterns/behavioral/strategy/StrategyDemo.java) | Swap algorithms at runtime | Payment/sorting/pricing strategies |
+| [Observer](src/com/lld/patterns/behavioral/observer/ObserverDemo.java) | Publish/subscribe | Notifications, stock tickers |
+| [State](src/com/lld/patterns/behavioral/state/StateDemo.java) | Behavior changes with state | Vending machine, order lifecycle |
+| [Command](src/com/lld/patterns/behavioral/command/CommandDemo.java) | Encapsulate a request | Undo/redo, task queues |
+| [Chain of Responsibility](src/com/lld/patterns/behavioral/chainofresponsibility/ChainDemo.java) | Pass request along handlers | Middleware, approval flows |
+| [Template Method](src/com/lld/patterns/behavioral/template/TemplateDemo.java) | Fixed skeleton, variable steps | Data pipelines, game turns |
+| [Iterator](src/com/lld/patterns/behavioral/iterator/IteratorDemo.java) | Traverse without exposing internals | Custom collections, pagination |
+| [Mediator](src/com/lld/patterns/behavioral/mediator/MediatorDemo.java) | Collapse N×N coupling into N×1 | Chat room, air-traffic control |
+| [Memento](src/com/lld/patterns/behavioral/memento/MementoDemo.java) | Snapshot & restore state | Undo, checkpoints, save games |
+| [Visitor](src/com/lld/patterns/behavioral/visitor/VisitorDemo.java) | New ops over a stable hierarchy | Tax/shipping over a cart, AST passes |
+| [Interpreter](src/com/lld/patterns/behavioral/interpreter/InterpreterDemo.java) | Evaluate a small grammar | Rule engines, formula/query eval |
 
 ### Practical — *not GoF, but interview gold*
 | Pattern | Solves | Classic LLD use |
 |---|---|---|
-| [Repository](src/com/lld/practical/repository/RepositoryDemo.java) | Hide persistence from the domain | "Where does the DB fit?" |
-| [Dependency Injection](src/com/lld/practical/di/DependencyInjectionDemo.java) | Wire collaborators from outside | Testability, DIP in practice |
-| [Null Object](src/com/lld/practical/nullobject/NullObjectDemo.java) | Remove null checks | Optional logger, guest user |
-| [Specification](src/com/lld/practical/specification/SpecificationDemo.java) | Composable business rules | Search filters, eligibility rules |
-| [Object Pool](src/com/lld/practical/objectpool/ObjectPoolDemo.java) | Reuse expensive objects | Connection/thread pools |
-| [Producer–Consumer](src/com/lld/practical/producerconsumer/ProducerConsumerDemo.java) | Decouple work creation from processing | Task queues, async logging |
-| [Unit of Work](src/com/lld/practical/unitofwork/UnitOfWorkDemo.java) | Flush a whole transaction atomically | "How do two repository saves stay consistent?" |
-| [Circuit Breaker](src/com/lld/practical/circuitbreaker/CircuitBreakerDemo.java) | Stop calling a dying dependency | Payment gateway outage, cascading failure |
-| [Idempotency Key](src/com/lld/practical/idempotency/IdempotencyDemo.java) | Make retries safe | "The client retried — did they pay twice?" |
-| [Domain Events](src/com/lld/practical/domainevents/DomainEventsDemo.java) | Announce facts, don't call collaborators | Order placed → email + stock + analytics |
-| [Result / Either](src/com/lld/practical/result/ResultDemo.java) | Failure as a value, not a throw | Validation pipelines, expected errors |
-| [Registry / Plugin](src/com/lld/practical/registry/PluginRegistryDemo.java) | Delete the switch everyone edits | Export formats, payment providers |
+| [Repository](src/com/lld/patterns/practical/repository/RepositoryDemo.java) | Hide persistence from the domain | "Where does the DB fit?" |
+| [Dependency Injection](src/com/lld/patterns/practical/di/DependencyInjectionDemo.java) | Wire collaborators from outside | Testability, DIP in practice |
+| [Null Object](src/com/lld/patterns/practical/nullobject/NullObjectDemo.java) | Remove null checks | Optional logger, guest user |
+| [Specification](src/com/lld/patterns/practical/specification/SpecificationDemo.java) | Composable business rules | Search filters, eligibility rules |
+| [Object Pool](src/com/lld/patterns/practical/objectpool/ObjectPoolDemo.java) | Reuse expensive objects | Connection/thread pools |
+| [Producer–Consumer](src/com/lld/patterns/practical/producerconsumer/ProducerConsumerDemo.java) | Decouple work creation from processing | Task queues, async logging |
+| [Unit of Work](src/com/lld/patterns/practical/unitofwork/UnitOfWorkDemo.java) | Flush a whole transaction atomically | "How do two repository saves stay consistent?" |
+| [Circuit Breaker](src/com/lld/patterns/practical/circuitbreaker/CircuitBreakerDemo.java) | Stop calling a dying dependency | Payment gateway outage, cascading failure |
+| [Idempotency Key](src/com/lld/patterns/practical/idempotency/IdempotencyDemo.java) | Make retries safe | "The client retried — did they pay twice?" |
+| [Domain Events](src/com/lld/patterns/practical/domainevents/DomainEventsDemo.java) | Announce facts, don't call collaborators | Order placed → email + stock + analytics |
+| [Result / Either](src/com/lld/patterns/practical/result/ResultDemo.java) | Failure as a value, not a throw | Validation pipelines, expected errors |
+| [Registry / Plugin](src/com/lld/patterns/practical/registry/PluginRegistryDemo.java) | Delete the switch everyone edits | Export formats, payment providers |
 
 ## Worked end-to-end problems
 
@@ -139,7 +162,7 @@ java -cp out com.lld.problems.texteditor.TextEditorDemo
 ```
 
 Each demo prints a narrated trace, including the failure cases — rejected inputs, races, sold-out
-machines, expired seat holds, and the change-making dead end. Read [PROBLEMS.md](docs/reference/PROBLEMS.md)
+machines, expired seat holds, and the change-making dead end. Read [the problem write-ups](docs/3-reference/2-problems.md)
 first for the reasoning, then the code for the execution.
 
 ## Running the code
@@ -150,14 +173,14 @@ Verified on **JDK 25**: all 49 demos compile and run clean, with zero `-Xlint:al
 ```powershell
 # from the repo root
 javac -d out (Get-ChildItem -Recurse -Filter *.java src).FullName
-java -cp out com.lld.behavioral.strategy.StrategyDemo
+java -cp out com.lld.patterns.behavioral.strategy.StrategyDemo
 ```
 
 Swap the final class name for any `*Demo` you want to run.
 
 ## Suggested study order
 
-1. SOLID + Approach docs, then [MODELLING.md](docs/foundations/MODELLING.md) — run `com.lld.foundations.modelling.ModellingDemo` alongside it
+1. SOLID + Approach docs, then [Modelling Intuition](docs/1-foundations/2-modelling.md) — run `com.lld.foundations.modelling.ModellingDemo` alongside it
 2. Strategy, Observer, Factory, Builder (appear in ~80% of interviews)
 3. State, Decorator, Singleton, Adapter, Facade
 4. Command, Composite, Chain of Responsibility, Template Method, Iterator
