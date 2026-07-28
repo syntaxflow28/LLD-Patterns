@@ -11,6 +11,7 @@
 | Doc | Contents |
 |---|---|
 | [APPROACH.md](foundations/APPROACH.md) | The 6-step framework, clarifying-question bank, entity modelling, concurrency playbook, common mistakes, a fully worked Parking Lot round |
+| [MODELLING.md](foundations/MODELLING.md) | **What becomes a class, an interface, or just a field** — the promotion ladder, the four reasons to add an interface, composition vs inheritance, ownership, tell-don't-ask, illegal states. Diagram-heavy, with a smell → move table and drills |
 | [SOLID.md](foundations/SOLID.md) | Each principle with the nuance most people miss, fast detection heuristics, an interview soundbite, and the counter-principles (KISS/YAGNI/Rule of Three) |
 
 ## reference/

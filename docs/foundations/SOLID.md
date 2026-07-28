@@ -9,6 +9,11 @@ changes — that keeps `ParkingLot` closed for modification" learns far more abo
 hears "I'll use the Strategy pattern." Always give the principle as the reason and the pattern as the
 mechanism.
 
+> **The layer below this one.** SOLID tells you when a solution is needed;
+> [MODELLING.md](MODELLING.md) is how you get the classes in the first place — what becomes a class,
+> an interface, or just a field, and why. LSP in particular becomes much more concrete there, with
+> the substitutability test and the composition fix reproduced in runnable code.
+
 ---
 
 ## S — Single Responsibility Principle (SRP)

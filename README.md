@@ -8,11 +8,12 @@ Covers all **23 GoF patterns** plus the **practical patterns** senior interviews
 ## How to use this repo
 
 1. Start with the **[Interview Approach](docs/foundations/APPROACH.md)** — a repeatable framework to drive any LLD round.
-2. Internalize the **[SOLID Principles](docs/foundations/SOLID.md)** — interviewers grade you on these, not on trivia.
-3. Learn the **patterns** below. For each, know: *the problem it solves*, *when to use it*, and *one real LLD example*.
-4. Use the **[Pattern Cheat Sheet](docs/reference/CHEATSHEET.md)** to pick the right tool under pressure.
-5. Go deep with the per-category references when a pattern doesn't click yet.
-6. Finish on the **[worked problems](#worked-end-to-end-problems)** — full implementations of real interview questions where several patterns have to cooperate.
+2. Build **[modelling intuition](docs/foundations/MODELLING.md)** — how to decide what becomes a class, an interface, or just a field. This is the skill patterns sit on top of.
+3. Internalize the **[SOLID Principles](docs/foundations/SOLID.md)** — interviewers grade you on these, not on trivia.
+4. Learn the **patterns** below. For each, know: *the problem it solves*, *when to use it*, and *one real LLD example*.
+5. Use the **[Pattern Cheat Sheet](docs/reference/CHEATSHEET.md)** to pick the right tool under pressure.
+6. Go deep with the per-category references when a pattern doesn't click yet.
+7. Finish on the **[worked problems](#worked-end-to-end-problems)** — full implementations of real interview questions where several patterns have to cooperate.
 
 ### Documentation map
 
@@ -22,6 +23,7 @@ All docs live under [`docs/`](docs), grouped by how you use them:
 |---|---|
 | **`foundations/`** | |
 | [APPROACH.md](docs/foundations/APPROACH.md) | The 6-step interview framework, question bank, concurrency playbook, worked Parking Lot example |
+| [MODELLING.md](docs/foundations/MODELLING.md) | **What becomes a class, an interface, or just a field — and why.** Composition vs inheritance, ownership, tell-don't-ask, illegal states. Diagram-heavy, with a smell → move table |
 | [SOLID.md](docs/foundations/SOLID.md) | Each principle with nuance, detection heuristics, and what to say out loud |
 | **`reference/`** | |
 | [CHEATSHEET.md](docs/reference/CHEATSHEET.md) | Fast symptom → pattern lookup, confusing pairs, 26 classic problems |
@@ -143,7 +145,7 @@ first for the reasoning, then the code for the execution.
 ## Running the code
 
 No build tool needed — plain Java (17+ required for records and sealed interfaces).
-Verified on **JDK 25**: all 48 demos compile and run clean, with zero `-Xlint:all` warnings.
+Verified on **JDK 25**: all 49 demos compile and run clean, with zero `-Xlint:all` warnings.
 
 ```powershell
 # from the repo root
@@ -155,7 +157,7 @@ Swap the final class name for any `*Demo` you want to run.
 
 ## Suggested study order
 
-1. SOLID + Approach docs
+1. SOLID + Approach docs, then [MODELLING.md](docs/foundations/MODELLING.md) — run `com.lld.foundations.modelling.ModellingDemo` alongside it
 2. Strategy, Observer, Factory, Builder (appear in ~80% of interviews)
 3. State, Decorator, Singleton, Adapter, Facade
 4. Command, Composite, Chain of Responsibility, Template Method, Iterator

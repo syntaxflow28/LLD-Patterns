@@ -125,6 +125,11 @@ enum VehicleType {
 (LSP). `ElectricCar extends Car` is usually wrong — an electric car is a car *with* a battery.
 Prefer a field or a capability interface.
 
+> **Going deeper.** This section is the interview-speed summary. [MODELLING.md](MODELLING.md) is the
+> intuition behind it — the promotion ladder from primitive to value object to entity to interface,
+> the four reasons an interface is worth its cost, ownership and leaking collections, tell-don't-ask,
+> and a smell → move table. Diagram-heavy, and backed by a runnable demo that reproduces each failure.
+
 ---
 
 ## 3. Define APIs / interfaces (3–5 min)
