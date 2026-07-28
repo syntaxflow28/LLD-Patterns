@@ -16,7 +16,7 @@ For every problem you get:
 
 ## Parking Lot
 
-> **Full implementation:** [`src/com/lld/problems/parkinglot/`](../../src/com/lld/problems/parkinglot/ParkingLotDemo.java)
+> **Full implementation:** [`src/problems/parkinglot/`](../../src/problems/parkinglot/ParkingLotDemo.java)
 
 **Requirements.** Multiple floors; spot types (motorcycle/compact/large); park and unpark; issue a
 ticket; compute a fee by duration; show availability.
@@ -45,7 +45,7 @@ allocation without a global lock.
 
 ## Vending Machine
 
-> **Full implementation:** [`src/com/lld/problems/vendingmachine/`](../../src/com/lld/problems/vendingmachine/VendingMachineDemo.java)
+> **Full implementation:** [`src/problems/vendingmachine/`](../../src/problems/vendingmachine/VendingMachineDemo.java)
 
 **Requirements.** Insert coins, select a product, dispense, return change, refund on cancel, handle
 sold-out.
@@ -74,7 +74,7 @@ test it.
 
 ## Elevator System
 
-> **Full implementation:** [`src/com/lld/problems/elevator/`](../../src/com/lld/problems/elevator/ElevatorDemo.java)
+> **Full implementation:** [`src/problems/elevator/`](../../src/problems/elevator/ElevatorDemo.java)
 
 **Requirements.** N elevators, M floors; internal (cabin) and external (hall) requests; move, open,
 close; scheduling across multiple cars.
@@ -101,7 +101,7 @@ not just floor numbers. Keep separate up/down request sets per car.
 
 ## Notification Service
 
-> **Full implementation:** [`src/com/lld/problems/notification/`](../../src/com/lld/problems/notification/NotificationDemo.java)
+> **Full implementation:** [`src/problems/notification/`](../../src/problems/notification/NotificationDemo.java)
 
 **Requirements.** Send notifications over email/SMS/push/WhatsApp; different notification types
 (OTP, order update, marketing); user preferences; retries; templating.
@@ -125,7 +125,7 @@ one new class plus a registration line, your abstraction is in the wrong place.
 
 ## Splitwise (Expense Sharing)
 
-> **Full implementation:** [`src/com/lld/problems/splitwise/`](../../src/com/lld/problems/splitwise/SplitwiseDemo.java)
+> **Full implementation:** [`src/problems/splitwise/`](../../src/problems/splitwise/SplitwiseDemo.java)
 
 **Requirements.** Users and groups; add an expense; split it equally / by exact amounts / by
 percentage / by shares; track who owes whom; simplify debts; settle up.
@@ -151,7 +151,7 @@ transactions to settle a group"* — that's a greedy heap-based algorithm, and i
 
 ## Tic-Tac-Toe and Chess
 
-> **Full implementation:** [`src/com/lld/problems/tictactoe/`](../../src/com/lld/problems/tictactoe/TicTacToeDemo.java) — generalised to n×n and k players, with O(1) win detection.
+> **Full implementation:** [`src/problems/tictactoe/`](../../src/problems/tictactoe/TicTacToeDemo.java) — generalised to n×n and k players, with O(1) win detection.
 
 > **45-minute budget.** `0-05` clarify (n×n or 3×3? two players or k? undo? is a win a full line?) ·
 > `05-12` types and the API · `12-25` the board with O(1) win detection · `25-35` turn order, illegal
@@ -197,7 +197,7 @@ detect an out-of-turn move at all.
 
 ## Logging Framework
 
-> **Full implementation:** [`src/com/lld/problems/logger/`](../../src/com/lld/problems/logger/LoggerDemo.java)
+> **Full implementation:** [`src/problems/logger/`](../../src/problems/logger/LoggerDemo.java)
 
 **Requirements.** Levels (DEBUG/INFO/WARN/ERROR); multiple destinations (console/file/network);
 formatting; async writes; per-module configuration.
@@ -223,7 +223,7 @@ production is a real incident class.
 
 ## Rate Limiter
 
-> **Full implementation:** [`src/com/lld/problems/ratelimiter/`](../../src/com/lld/problems/ratelimiter/RateLimiterDemo.java)
+> **Full implementation:** [`src/problems/ratelimiter/`](../../src/problems/ratelimiter/RateLimiterDemo.java)
 
 **Requirements.** Limit requests per user/API key; algorithms (token bucket, leaky bucket, fixed
 window, sliding window log/counter); distributed operation.
@@ -273,7 +273,7 @@ proportional to nearby drivers only. Patterns won't save you here; the data stru
 
 ## Cache with LRU or LFU eviction
 
-> **Full implementation:** [`src/com/lld/problems/cache/`](../../src/com/lld/problems/cache/CacheDemo.java)
+> **Full implementation:** [`src/problems/cache/`](../../src/problems/cache/CacheDemo.java)
 
 **Requirements.** `get`/`put` in O(1); fixed capacity; pluggable eviction; TTL; thread safety.
 
@@ -299,7 +299,7 @@ direct node reference so you never scan the list. Then: *"make it thread-safe"* 
 
 ## Gaming Leaderboard
 
-> **Full implementation:** [`src/com/lld/problems/leaderboard/`](../../src/com/lld/problems/leaderboard/LeaderboardDemo.java)
+> **Full implementation:** [`src/problems/leaderboard/`](../../src/problems/leaderboard/LeaderboardDemo.java)
 
 **Requirements.** Millions of players; scores update in real time; return the top K; return *a given
 player's* rank; daily, weekly and all-time boards.
@@ -367,7 +367,7 @@ the write-path contention entirely.
 
 ## Text Editor
 
-> **Full implementation:** [`src/com/lld/problems/texteditor/`](../../src/com/lld/problems/texteditor/TextEditorDemo.java) — the undo/redo core, with the Command-vs-Memento cost measured.
+> **Full implementation:** [`src/problems/texteditor/`](../../src/problems/texteditor/TextEditorDemo.java) — the undo/redo core, with the Command-vs-Memento cost measured.
 
 **Requirements.** Insert/delete/format text; unlimited undo/redo; a document structure of
 sections/paragraphs/runs; render efficiently for large documents.
@@ -511,7 +511,7 @@ a *copy*, you reserve a *book*. Getting this modelling right matters more than a
 
 ## Hotel and Movie Booking
 
-> **Full implementation:** [`src/com/lld/problems/booking/`](../../src/com/lld/problems/booking/BookingDemo.java)
+> **Full implementation:** [`src/problems/booking/`](../../src/problems/booking/BookingDemo.java)
 
 **Requirements.** Search availability; hold a seat/room; book; pay; cancel and refund; prevent
 double-booking.
@@ -535,7 +535,7 @@ database.
 
 ## Meeting Room Scheduler
 
-> **Full implementation:** [`src/com/lld/problems/meetingscheduler/`](../../src/com/lld/problems/meetingscheduler/MeetingSchedulerDemo.java)
+> **Full implementation:** [`src/problems/meetingscheduler/`](../../src/problems/meetingscheduler/MeetingSchedulerDemo.java)
 
 > **45-minute budget.** `0-05` clarify (half-open intervals? recurring? timezones? cancellations?) ·
 > `05-10` `Room`, `Meeting`, `RoomCalendar`, `MeetingScheduler` · `10-20` the overlap predicate and
@@ -649,7 +649,7 @@ stable *by assumption*, and if that assumption is wrong, Visitor is the wrong pa
 
 ## Undo and Redo System
 
-> **Full implementation:** [`src/com/lld/problems/texteditor/`](../../src/com/lld/problems/texteditor/TextEditorDemo.java)
+> **Full implementation:** [`src/problems/texteditor/`](../../src/problems/texteditor/TextEditorDemo.java)
 
 > **45-minute budget.** `0-05` clarify (what is one undo step? bounded history? redo? macros?) ·
 > `05-12` `Command`, `Document`, `CommandHistory` · `12-22` insert and delete, capturing the inverse ·

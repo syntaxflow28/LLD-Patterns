@@ -3,7 +3,7 @@
 Detailed reference for the 11 behavioral patterns: how objects communicate, distribute
 responsibility, and encapsulate varying behaviour. This is where most LLD interviews are won.
 
-Code: [`src/com/lld/patterns/behavioral`](../../src/com/lld/patterns/behavioral)
+Code: [`src/patterns/behavioral`](../../src/patterns/behavioral)
 
 ---
 

@@ -642,14 +642,14 @@ Modelling decisions are invisible unless you narrate them. These are the sentenc
 ## Runnable proof
 
 Every rule above fails loudly when broken, and
-[`src/com/lld/foundations/modelling/`](../../src/com/lld/foundations/modelling/ModellingDemo.java)
+[`src/foundations/modelling/`](../../src/foundations/modelling/ModellingDemo.java)
 reproduces those failures rather than describing them: currencies silently added together until a
 value object makes it impossible, an LSP violation breaking a caller that was correct for the base
 type, the subclass explosion counted class by class, a train-wreck getter chain that survives one
 refactor and not the next, and boolean flags encoding states nobody meant.
 
 ```powershell
-java -cp out com.lld.foundations.modelling.ModellingDemo
+java -cp out foundations.modelling.ModellingDemo
 ```
 
 ---

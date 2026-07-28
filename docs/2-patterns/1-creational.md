@@ -4,7 +4,7 @@ Detailed reference for the 6 creational patterns. Each entry gives you the *inte
 removes*, real JDK usage, when **not** to use it, a one-paragraph soundbite you can say out loud,
 and the follow-up questions interviewers reliably ask.
 
-Code: [`src/com/lld/patterns/creational`](../../src/com/lld/patterns/creational)
+Code: [`src/patterns/creational`](../../src/patterns/creational)
 
 ---
 
