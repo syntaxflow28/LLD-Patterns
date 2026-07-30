@@ -180,6 +180,7 @@ flowchart LR
 | Problem | Patterns you'll likely use | The core reason |
 |---|---|---|
 | [Parking Lot](2-problems.md#parking-lot) | Strategy (fees), Factory (spots), Singleton (lot), State (ticket) | Pricing and spot types are the named axes of change |
+| [Amazon Locker](2-problems.md#amazon-locker) | Strategy (allocation, code policy), Observer, Builder, Facade | A scarce door plus a *secret* with a TTL — hash the code, cap the attempts |
 | [Vending Machine](2-problems.md#vending-machine) | State, Strategy, Singleton | It *is* a state machine — every op is state-dependent |
 | [Elevator system](2-problems.md#elevator-system) | State, Strategy (scheduling), Observer, Command (requests) | Scheduling is the real problem; requests must be queueable objects |
 | [Notification service](2-problems.md#notification-service) | Bridge (type × channel), Strategy, Factory, Observer, Decorator | Two independent axes → M+N classes instead of M×N |

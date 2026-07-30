@@ -79,6 +79,104 @@ allocation without a global lock.
 
 ---
 
+## Amazon Locker
+
+> **Full implementation:** [`src/com/lld/problems/amazonlocker/`](../../src/com/lld/problems/amazonlocker/AmazonLockerDemo.java)
+
+**Is this LLD or HLD?** LLD, and it is asked as LLD almost every time. The deliverable is a class
+diagram plus working code: entities, a reservation lifecycle, allocation, a secret with a TTL, a
+concurrency protocol. It becomes an HLD question only when the interviewer scales it — geospatial
+sharding, IoT connectivity to the cabinets, notification fan-out, cross-region consistency. If you
+find yourself doing capacity estimation, you have drifted.
+
+**Requirements.** Reserve a locker near the customer; the courier drops the parcel in; the customer
+opens it with a code; unclaimed parcels go back to the carrier; a parcel must fit the locker.
+
+**Where the design pressure is.** It looks like the parking lot, and the three things that differ are
+the whole interview:
+1. **The code is a secret.** It is generated, delivered out of band, verified at a keypad, and can be
+   guessed. Storing it as a `String` field on the reservation is the mistake everyone makes.
+2. **Two independent expiry windows.** The courier can no-show (a door held for a van that never
+   came) and the customer can ghost (a door bricked by a parcel nobody wants). Both free the door.
+3. **Claimed by one actor, released by another.** The carrier books, the courier fills, the customer
+   empties. A design with only "customer collects parcel" has missed two thirds of the flow.
+
+| Pattern | Applied to | Why this one |
+|---|---|---|
+| **Strategy** | `LockerAllocationStrategy` | Smallest-fit vs first-fit vs "keep the bottom row for wheelchair users" vs refrigerated doors. Best-fit is the answer to *"what stops a phone case taking the extra-large door?"* — small doors outnumber large ones ten to one, so wasting one is expensive. |
+| **Strategy** (2nd) | `AccessCodePolicy` | Keypad PIN today, scannable alphanumeric tomorrow, rotating app QR after that. Isolating it also isolates the one line in the design that has to be cryptographically correct. |
+| **Observer** | `LockerEventListener` | "Text the customer their code" becomes email, then push, then an audit trail, then metrics. It also forces the security split: the notifier legitimately handles the plaintext code, the audit log must never print it. |
+| **Builder** | `LockerService` | Two windows, two strategies, an attempt cap and a station layout. Validation in `build()` so the service cannot exist half-configured. |
+| **Facade** | `LockerService` | Four operations — `reserve`, `dropOff`, `pickUp`, `reclaimExpired` — for three actors. |
+| **State** *(as an enum, deliberately)* | `ReservationStatus` | Four states, two happy transitions, and the behaviour difference is one guard in two methods. An enum with `canTransitionTo` is proportionate; four state classes would be pattern tax. **Saying why you did not use State scores better than using it.** |
+
+```mermaid
+classDiagram
+    direction LR
+    class LockerService {
+        +reserve(Parcel, stationId) LockerAssignment
+        +dropOff(reservationId) String
+        +pickUp(lockerId, code) Parcel
+        +reclaimExpired() int
+    }
+    class LockerAllocationStrategy {
+        <<interface>>
+        +allocate(LockerLocation, Reservation) Optional
+    }
+    class AccessCodePolicy {
+        <<interface>>
+        +generate() String
+    }
+    class LockerEventListener {
+        <<interface>>
+        +onParcelDroppedOff(...)
+    }
+    class Locker {
+        -AtomicReference~Reservation~ reservation
+        -AtomicInteger failedAttempts
+        +tryReserve(Reservation) boolean
+        +tryRelease(Reservation) boolean
+    }
+    class Reservation {
+        +ReservationStatus status
+        +Instant deadline
+    }
+    class AccessCode {
+        -byte[] salt
+        -byte[] hash
+        +matches(String) boolean
+    }
+    class LockerLocation
+    class Parcel
+    LockerService o-- LockerAllocationStrategy : which door
+    LockerService o-- AccessCodePolicy : which secret
+    LockerService o-- LockerEventListener : who to tell
+    LockerService *-- LockerLocation
+    LockerLocation *-- Locker
+    Locker --> Reservation : CAS state machine
+    Reservation *-- AccessCode : hashed, never plaintext
+    Reservation --> Parcel
+```
+
+**The one thing interviewers probe.** *"How do you store and check the pickup code?"* The answer they
+want is the password answer: **salt and hash it, compare in constant time, and cap the attempts at
+the keypad**. Say why plain SHA-256 is defensible here — six digits, one-day lifetime, a hard attempt
+cap — and when you would switch to a slow KDF. A design that keeps the OTP in plaintext loses every
+locker to whoever can read a log line.
+
+**Follow-ups worth pre-empting.**
+- *"Two couriers get assigned the same door."* Same CAS claim as the parking lot, but say the harder
+  version too: two family members enter the correct code at the same instant. Both pass the code
+  check — only the compare-and-set on release decides who gets the parcel.
+- *"How does the parcel come back?"* A scheduled sweep, not lazy expiry. A seat hold nobody looks at
+  costs nothing; an expired parcel is a physical object occupying a door, and nobody will ever ask
+  about it again.
+- *"Does it fit?"* Grade parcels into locker sizes rather than modelling dimensions. If they push on
+  "long and thin", the answer is `Dimensions` and six orientations — and the honest note that
+  arbitrary boxes into arbitrary holes is bin packing, not this question.
+
+---
+
 ## Vending Machine
 
 > **Full implementation:** [`src/com/lld/problems/vendingmachine/`](../../src/com/lld/problems/vendingmachine/VendingMachineDemo.java)

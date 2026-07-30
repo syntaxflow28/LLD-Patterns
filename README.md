@@ -116,7 +116,7 @@ and each section of [Classic Problems](docs/3-reference/2-problems.md) maps to a
 ## Worked end-to-end problems
 
 Single-pattern demos teach the pattern; they don't teach the hard part, which is **choosing between
-patterns under time pressure and making them cooperate**. These thirteen are complete, runnable
+patterns under time pressure and making them cooperate**. These fourteen are complete, runnable
 implementations of the questions that actually get asked — multi-file packages, real validation,
 real edge cases, and comments explaining *why* each decision beat the alternative.
 
@@ -128,6 +128,7 @@ real edge cases, and comments explaining *why* each decision beat the alternativ
 | Problem | Patterns combined | The hard part it drills |
 |---|---|---|
 | [Parking Lot](src/com/lld/problems/parkinglot/ParkingLotDemo.java) | Strategy ×2, Decorator, Observer, Builder, Facade | Lock-free spot claiming (CAS), `BigDecimal` money, why *not* Singleton |
+| [Amazon Locker](src/com/lld/problems/amazonlocker/AmazonLockerDemo.java) | Strategy ×2, Observer, Builder, Facade, State (as an enum) | **Pickup codes stored like passwords** — salted hash, constant-time compare, keypad lockout; two expiry windows; two people entering the same correct code, one parcel |
 | [Vending Machine](src/com/lld/problems/vendingmachine/VendingMachineDemo.java) | State, Facade, Flyweight-ish shared states | State vs Strategy, illegal transitions, **can the hopper actually make change?** |
 | [Splitwise](src/com/lld/problems/splitwise/SplitwiseDemo.java) | Strategy, Observer, Facade | Rounding so shares sum *exactly*, materialised ledger, greedy min-cash-flow |
 | [Elevator System](src/com/lld/problems/elevator/ElevatorDemo.java) | Strategy, Mediator, Facade, sealed hierarchy | SCAN vs FIFO, hall calls ≠ car calls, dispatch cost functions |
@@ -147,6 +148,7 @@ Run them the same way as any other demo:
 
 ```powershell
 java -cp out com.lld.problems.parkinglot.ParkingLotDemo
+java -cp out com.lld.problems.amazonlocker.AmazonLockerDemo
 java -cp out com.lld.problems.vendingmachine.VendingMachineDemo
 java -cp out com.lld.problems.splitwise.SplitwiseDemo
 java -cp out com.lld.problems.elevator.ElevatorDemo
